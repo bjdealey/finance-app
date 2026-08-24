@@ -26,6 +26,7 @@ export interface TxnListRow {
   categoryName: string | null;
   transactionType: TransactionType;
   transferGroupId: string | null;
+  source: string;
 }
 
 function buildWhere(userId: string, f: TxnFilters): SQL {
@@ -61,6 +62,7 @@ export async function listTransactions(
         categoryName: categories.name,
         transactionType: transactions.transactionType,
         transferGroupId: transactions.transferGroupId,
+        source: transactions.source,
       })
       .from(transactions)
       .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -90,4 +92,47 @@ export async function correctCategory(userId: string, txnId: string, categoryId:
       .insert(categoryRules)
       .values({ userId, matchType: 'MERCHANT_EXACT', pattern: merchant, categoryId, priority: 0, source: 'USER_CORRECTION' });
   }
+}
+
+// ---- Manual entry -----------------------------------------------------------
+
+export interface NewTransaction {
+  accountId: string;
+  date: string; // YYYY-MM-DD
+  amount: number; // signed pence (negative = money out)
+  description: string | null;
+  merchant: string | null;
+  categoryId: string | null;
+  transactionType: TransactionType;
+}
+
+// Add a user-entered transaction. The destination account is verified to belong to the user first
+// (IDOR-safe). Stored as source=MANUAL so it can later be deleted (imported/seed rows cannot).
+export async function addTransaction(userId: string, input: NewTransaction): Promise<void> {
+  const [owned] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.id, input.accountId), eq(accounts.userId, userId)))
+    .limit(1);
+  if (!owned) throw new Error('Account not found');
+  await db.insert(transactions).values({
+    userId,
+    accountId: input.accountId,
+    date: input.date,
+    amount: input.amount,
+    merchant: input.merchant,
+    description: input.description,
+    categoryId: input.categoryId,
+    transactionType: input.transactionType,
+    status: 'POSTED',
+    source: 'MANUAL',
+    confidence: input.categoryId ? 100 : 0,
+  });
+}
+
+// Delete a MANUAL transaction only — imported/seed ledger entries stay immutable (spec §37).
+export async function deleteTransaction(userId: string, id: string): Promise<void> {
+  await db
+    .delete(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.source, 'MANUAL')));
 }

@@ -5,6 +5,7 @@ import { listAccounts, listCategories, categoryOptions } from '@/server/services
 import type { TransactionType } from '@/core/types';
 import { Card, Money, Badge, PageHeader } from '@/components/ui';
 import { CategorySelect } from '@/components/category-select';
+import { deleteTransactionAction } from './actions';
 import { formatDateShort } from '@/lib/format';
 
 const TYPES: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER', 'REFUND', 'INTEREST', 'FEE', 'CARD_PAYMENT', 'UNKNOWN'];
@@ -48,11 +49,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between gap-4">
         <PageHeader title="Transactions" subtitle={`${total.toLocaleString()} transactions`} />
-        <Link href="/transactions/import" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg">
-          Import CSV
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link href="/transactions/new" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg">Add</Link>
+          <Link href="/transactions/import" className="rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2">Import CSV</Link>
+        </div>
       </div>
 
       <form className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-6" method="get">
@@ -82,10 +84,10 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
       <Card className="p-0">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[34rem] text-sm">
+        <table className="w-full min-w-[36rem] text-sm">
           <tbody className="divide-y divide-border">
             {rows.length === 0 && (
-              <tr><td className="p-6 text-center text-muted">No transactions match these filters.</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-muted">No transactions match these filters.</td></tr>
             )}
             {rows.map((t) => {
               const isTransfer = t.transactionType === 'TRANSFER' || t.transactionType === 'CARD_PAYMENT';
@@ -97,7 +99,14 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                   <td className="py-2.5">
                     {isTransfer ? <Badge>transfer</Badge> : <CategorySelect txnId={t.id} categoryId={t.categoryId} options={catOpts} />}
                   </td>
-                  <td className="py-2.5 pr-5 text-right"><Money pence={t.amount} colored signed /></td>
+                  <td className="py-2.5 text-right"><Money pence={t.amount} colored signed /></td>
+                  <td className="w-8 py-2.5 pl-2 pr-4 text-right align-middle">
+                    {t.source === 'MANUAL' && (
+                      <form action={deleteTransactionAction.bind(null, t.id)}>
+                        <button className="text-base leading-none text-muted hover:text-neg" title="Delete this manual entry" aria-label="Delete transaction">×</button>
+                      </form>
+                    )}
+                  </td>
                 </tr>
               );
             })}

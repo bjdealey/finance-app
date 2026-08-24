@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import * as s from '@/server/db/schema';
 import type { Account, Transaction, FinancialSnapshot } from '@/core/types';
@@ -44,16 +44,18 @@ function mapTxn(r: s.TransactionRow): Transaction {
 // Every query is scoped by userId (from the session, never client input).
 export async function loadSnapshot(userId: string, asOf?: string): Promise<FinancialSnapshot> {
   const [accounts, transactions, categories, goals, userRules] = await Promise.all([
-    db.select().from(s.accounts).where(eq(s.accounts.userId, userId)),
+    db.select().from(s.accounts).where(and(eq(s.accounts.userId, userId), eq(s.accounts.active, true))),
     db.select().from(s.transactions).where(eq(s.transactions.userId, userId)),
     db.select().from(s.categories).where(eq(s.categories.userId, userId)),
     db.select().from(s.goals).where(eq(s.goals.userId, userId)),
     db.select().from(s.userRules).where(eq(s.userRules.userId, userId)),
   ]);
+  // Closed (inactive) accounts drop out of the picture, along with their transactions.
+  const activeIds = new Set(accounts.map((a) => a.id));
   return {
     asOf: asOf ?? new Date().toISOString().slice(0, 10),
     accounts: accounts.map(mapAccount),
-    transactions: transactions.map(mapTxn),
+    transactions: transactions.filter((t) => activeIds.has(t.accountId)).map(mapTxn),
     categories: categories.map((c) => ({ id: c.id, name: c.name, parentId: c.parentId, kind: c.kind })),
     goals: goals.map((g) => ({
       id: g.id,

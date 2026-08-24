@@ -18,10 +18,12 @@ const PRIMARY: Item[] = [
   { href: '/recommendations', label: 'Recommendations' },
 ];
 const MORE: Item[] = [
+  { href: '/goals', label: 'Goals' },
   { href: '/behaviour', label: 'Behaviour' },
   { href: '/scenarios', label: 'What if?' },
   { href: '/health', label: 'Health' },
   { href: '/assistant', label: 'Assistant' },
+  { href: '/settings', label: 'Settings' },
 ];
 
 export function AppHeader({ userName }: { userName: string }) {

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import { users } from '@/server/db/schema';
+import { seedUserDefaults } from '@/server/db/defaults';
 import { hashPassword, verifyPassword } from './password';
 import { createSession, destroySession } from './session';
 import { hitRateLimit, clearRateLimit } from './rate-limit';
@@ -41,6 +42,8 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     .insert(users)
     .values({ name, email, passwordHash: await hashPassword(password) })
     .returning({ id: users.id });
+  // Seed the default category taxonomy + rules so the new user can categorise and analyse from day one.
+  await seedUserDefaults(user.id);
   await createSession(user.id);
   redirect('/dashboard');
 }

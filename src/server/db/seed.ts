@@ -3,6 +3,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db, closeDb } from './client';
 import * as s from './schema';
+import { seedCategoriesAndRules } from './defaults';
 import { hashPassword } from '../auth/password';
 import { loadSnapshot } from '../services/snapshot';
 import { computeBalances } from '../../core/ledger';
@@ -40,50 +41,9 @@ async function main() {
     .returning();
   const userId = user.id;
 
-  // 3. Categories (hierarchical). Insert parents, then children, keep a name->id map.
-  const catId = new Map<string, string>();
-  async function addCat(name: string, kind: s.CategoryRow['kind'], parent?: string) {
-    const [row] = await db
-      .insert(s.categories)
-      .values({ userId, name, kind, parentId: parent ? catId.get(parent)! : null })
-      .returning();
-    catId.set(name, row.id);
-  }
-  const TREE: [string, s.CategoryRow['kind'], string[]][] = [
-    ['Income', 'INCOME', ['Salary', 'Bonus', 'Interest', 'Refund']],
-    ['Housing', 'EXPENSE', ['Rent', 'Council Tax', 'Utilities', 'Water', 'Broadband']],
-    ['Food', 'EXPENSE', ['Groceries', 'Restaurants', 'Takeaway']],
-    ['Transport', 'EXPENSE', ['Public Transport', 'Fuel', 'Taxi']],
-    ['Lifestyle', 'EXPENSE', ['Entertainment', 'Shopping', 'Subscriptions', 'Travel', 'Gym']],
-    ['Financial', 'EXPENSE', ['Insurance', 'Bank Fees', 'Interest Charged']],
-    ['Transfers', 'TRANSFER', ['Savings Transfer', 'ISA Contribution', 'Investment Contribution', 'Credit Card Payment', 'Account Transfer']],
-  ];
-  for (const [parent, kind] of TREE) await addCat(parent, kind);
-  for (const [parent, kind, kids] of TREE) for (const kid of kids) await addCat(kid, kind, parent);
-
-  // 4. Category rules (keyword -> category) used by the categorisation engine on CSV imports.
-  const RULES: [string, string][] = [
-    ['salary', 'Salary'], ['payroll', 'Salary'], ['bonus', 'Bonus'],
-    ['tesco', 'Groceries'], ['sainsbury', 'Groceries'], ['aldi', 'Groceries'], ['lidl', 'Groceries'], ['waitrose', 'Groceries'], ['co-op', 'Groceries'],
-    ['dishoom', 'Restaurants'], ['nando', 'Restaurants'], ['pizza express', 'Restaurants'], ['franco manca', 'Restaurants'], ['wagamama', 'Restaurants'], ['restaurant', 'Restaurants'],
-    ['deliveroo', 'Takeaway'], ['uber eats', 'Takeaway'], ['just eat', 'Takeaway'],
-    ['tfl', 'Public Transport'], ['trainline', 'Public Transport'],
-    ['uber', 'Taxi'], ['bolt', 'Taxi'],
-    ['shell', 'Fuel'], ['bp ', 'Fuel'], ['esso', 'Fuel'],
-    ['netflix', 'Subscriptions'], ['spotify', 'Subscriptions'], ['disney', 'Subscriptions'], ['amazon prime', 'Subscriptions'], ['icloud', 'Subscriptions'], ['audible', 'Subscriptions'],
-    ['puregym', 'Gym'], ['gym', 'Gym'],
-    ['asos', 'Shopping'], ['amazon', 'Shopping'], ['john lewis', 'Shopping'], ['argos', 'Shopping'],
-    ['ryanair', 'Travel'], ['easyjet', 'Travel'], ['booking.com', 'Travel'], ['airbnb', 'Travel'], ['british airways', 'Travel'],
-    ['council tax', 'Council Tax'], ['thames water', 'Water'], ['octopus energy', 'Utilities'], ['british gas', 'Utilities'],
-    ['bt broadband', 'Broadband'], ['virgin media', 'Broadband'],
-    ['aviva', 'Insurance'], ['direct line', 'Insurance'], ['admiral', 'Insurance'],
-    ['rent', 'Rent'],
-  ];
-  await db.insert(s.categoryRules).values(
-    RULES.map(([pattern, cat], i) => ({
-      userId, matchType: 'KEYWORD' as const, pattern, categoryId: catId.get(cat)!, priority: i, source: 'SEED' as const,
-    })),
-  );
+  // 3 + 4. Categories (hierarchical) + keyword categorisation rules — shared with new-user
+  // registration via seedCategoriesAndRules, which returns a category-name -> id map.
+  const catId = await seedCategoriesAndRules(userId);
 
   // 5. Accounts
   const accId = new Map<string, string>();
