@@ -60,10 +60,11 @@ export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[]
     // commitments like rent/bills elsewhere in the month don't distort the baseline.
     let post = 0;
     let pre = 0;
+    let windowN = 0; // transactions actually inside the two compared windows
     for (const t of spend) {
       const delta = (dom(t.date) - payday + 31) % 31;
-      if (delta <= 5) post += Math.abs(t.amount);
-      else if (delta >= 25) pre += Math.abs(t.amount);
+      if (delta <= 5) { post += Math.abs(t.amount); windowN++; }
+      else if (delta >= 25) { pre += Math.abs(t.amount); windowN++; }
     }
     const multiplier = +Math.min(3, post / Math.max(pre, 1)).toFixed(2); // cap runaway when pre≈0
     signals.push({
@@ -71,7 +72,9 @@ export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[]
       label: 'Post-payday spending',
       value: multiplier,
       unit: 'MULTIPLIER',
-      confidence: tierFromCount(spend.length),
+      // Confidence rests on the transactions in the two payday windows, not the whole ledger — a busy
+      // account with little spend near payday shouldn't read as high-confidence for this signal.
+      confidence: tierFromCount(windowN),
       detail: `In the days just after payday you spend about ${multiplier.toFixed(2)}× what you spend in the lean days just before it.`,
     });
   }
@@ -157,12 +160,17 @@ export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[]
     const otherAvg = otherMonths.size ? otherTotal / otherMonths.size : 0;
     if (summerAvg > 0 && summerMonths.size + otherMonths.size >= 2) {
       const mult = +Math.min(9, summerAvg / Math.max(otherAvg, 1)).toFixed(2);
+      // A seasonal comparison is supported by how many summer vs non-summer MONTHS were observed, not a
+      // raw transaction count — travel is sparse, so the volume thresholds never fit. One year can't
+      // confirm the pattern recurs, so cap at MEDIUM, matching the seasonal-expense signal.
+      const confidence: ConfidenceTier =
+        summerMonths.size >= 2 && otherMonths.size >= 3 ? 'MEDIUM' : summerMonths.size + otherMonths.size >= 4 ? 'LOW' : 'INSUFFICIENT_DATA';
       signals.push({
         id: 'travel_spending_multiplier',
         label: 'Summer travel',
         value: mult,
         unit: 'MULTIPLIER',
-        confidence: tierFromCount(inCat(travelId).length),
+        confidence,
         detail: `You spend about ${mult.toFixed(2)}× as much per month on travel in summer (Jun–Aug) as the rest of the year.`,
       });
     }

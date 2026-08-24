@@ -29,6 +29,20 @@ describe('computeSignals', () => {
     expect(sig.value).toBe(2); // post (8000) / pre (4000)
   });
 
+  it('scores post-payday confidence on the window transactions, not the whole ledger', () => {
+    // A busy account: heaps of mid-month spend (day 10, outside both windows) inflates total volume,
+    // but only two txns/month land near payday. Confidence must reflect the sparse windows, not volume.
+    const txns = MONTHS.flatMap((mk) => [
+      txn({ amount: 300_000, date: `${mk}-25`, transactionType: 'INCOME' }),
+      txn({ amount: -6_000, date: `${mk}-26`, transactionType: 'EXPENSE' }), // post window
+      txn({ amount: -3_000, date: `${mk}-22`, transactionType: 'EXPENSE' }), // pre window
+      ...['08', '09', '10', '11', '12'].map((d) => txn({ amount: -4_000, date: `${mk}-${d}`, transactionType: 'EXPENSE' })), // mid-month, excluded
+    ]);
+    const sig = computeSignals(snap({ asOf: '2026-08-15', transactions: txns })).find((s) => s.id === 'post_payday_spending_multiplier')!;
+    // 84 spend txns total (old code -> MEDIUM), but only 24 in the payday windows -> LOW.
+    expect(sig.confidence).toBe('LOW');
+  });
+
   it('surfaces the savings withdrawal rate', () => {
     const easy = acc({ id: 'easy', accountType: 'SAVINGS' });
     const txns = ['2026-01', '2026-02', '2026-03'].flatMap((mk) => [
@@ -66,6 +80,8 @@ describe('computeSignals', () => {
     });
     const sig = computeSignals(snap({ asOf: '2026-08-15', categories: cats, transactions: txns })).find((s) => s.id === 'travel_spending_multiplier')!;
     expect(sig.value).toBe(4); // summer 40000 / other 10000
+    // 3 summer + 9 other months of data, but a single year can't confirm the pattern recurs — capped.
+    expect(sig.confidence).toBe('MEDIUM');
   });
 
   it('flags grocery creep — recent spend above the typical month', () => {
