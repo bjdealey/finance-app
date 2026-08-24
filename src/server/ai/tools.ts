@@ -58,6 +58,9 @@ export function runTool(name: string, input: Record<string, unknown>, a: Analysi
         grossSavingsRate: `${s.grossSavingsRate}%`,
         netSavingsRate: `${s.netSavingsRate}%`,
         effectiveSavingsRate: `${s.effectiveSavingsRate}%`,
+        isaAllowanceUsedThisTaxYear: formatGBP(a.isa.used),
+        isaAllowanceRemaining: formatGBP(a.isa.remaining),
+        isaAllowanceTotal: formatGBP(a.isa.annualAllowance),
       };
 
     case 'get_cashflow_forecast': {

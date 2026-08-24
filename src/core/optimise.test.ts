@@ -36,3 +36,27 @@ describe('optimize — never over-allocates a single source (spec §40)', () => 
     expect(result.surplus).toBe(400_000); // no cap applied
   });
 });
+
+describe('optimize — respects the ISA annual allowance (spec §16)', () => {
+  it('caps an ISA move at the remaining allowance and overflows to the next-best saver', () => {
+    const accounts = [
+      acc({ id: 'main', name: 'Main', accountType: 'CURRENT', openingBalance: 5_000_000 }), // £50k source
+      acc({ id: 'cisa', name: 'Cash ISA', accountType: 'CASH_ISA', accessType: 'INSTANT', interestRateBps: 500, taxWrapper: 'CASH_ISA', openingBalance: 0 }),
+      acc({ id: 'easy', name: 'Easy Saver', accountType: 'SAVINGS', accessType: 'INSTANT', interestRateBps: 470, openingBalance: 0 }),
+    ];
+    // Already subscribed £19,000 this tax year -> only £1,000 of ISA room left.
+    const priorIsa = { accountId: 'cisa', amount: 19_000_00, date: '2026-05-01', transactionType: 'TRANSFER' as const };
+    const result = optimize(
+      snap({ asOf: '2026-08-24', accounts, transactions: [{ ...priorIsa, id: 'p', currency: 'GBP', merchant: null, description: null, categoryId: null, status: 'POSTED', transferGroupId: null, source: 'SEED' }] }),
+      STATE,
+      liq(3_000_000), // £30k surplus, well over the £1k of ISA room
+    );
+
+    const isaMove = result.allocations.find((a) => a.destinationAccountId === 'cisa');
+    const easyMove = result.allocations.find((a) => a.destinationAccountId === 'easy');
+    expect(isaMove?.amount).toBe(1_000_00); // capped at remaining allowance
+    expect(isaMove?.constraintsChecked).toContain('ISA_ALLOWANCE');
+    expect(easyMove).toBeTruthy(); // overflow lands in the non-ISA saver
+    expect((easyMove?.amount ?? 0)).toBeGreaterThan(0);
+  });
+});

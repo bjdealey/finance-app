@@ -2,6 +2,7 @@ import type { FinancialSnapshot, ReasonCode, ConstraintCode } from './types';
 import type { FinancialState } from './state';
 import type { Liquidity } from './liquidity';
 import { computeBalances } from './ledger';
+import { isaAllowance } from './isa';
 
 export type AllocationKind = 'PAY_DEBT' | 'EMERGENCY_FUND' | 'SAVINGS' | 'BUFFER';
 
@@ -99,7 +100,9 @@ export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liq
     }
   }
 
-  // 3. Remaining -> highest-rate accessible savings/ISA (respecting PREFER_INSTANT_ACCESS).
+  // 3. Remaining -> accessible savings/ISA by rate. Walk them best-first so that when an ISA's
+  // remaining annual allowance can't absorb the whole surplus, the overflow lands in the next-best
+  // non-ISA saver instead of silently exceeding the £20k limit (spec §16 tax treatment).
   if (left > 0) {
     let dests = snapshot.accounts.filter(
       (a) =>
@@ -108,23 +111,32 @@ export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liq
         !doNotTouch.has(a.id),
     );
     if (preferInstant) dests = dests.filter((a) => a.accessType === 'INSTANT');
-    const dest = dests.sort((a, b) => b.interestRateBps - a.interestRateBps)[0];
-    if (dest && dest.interestRateBps > source.interestRateBps) {
+    dests.sort((a, b) => b.interestRateBps - a.interestRateBps);
+    let isaRemaining = isaAllowance(snapshot).remaining;
+    for (const dest of dests) {
+      if (left <= 0 || dest.interestRateBps <= source.interestRateBps) break; // sorted: nothing better follows
+      const isIsa = dest.accountType === 'CASH_ISA' || dest.taxWrapper != null;
+      const amount = isIsa ? Math.min(left, isaRemaining) : left;
+      if (amount <= 0) continue; // ISA allowance exhausted -> fall through to the next saver
       const reasonCodes: ReasonCode[] = ['EXCESS_CURRENT_BALANCE', 'HIGHER_SAVINGS_RATE'];
-      if (dest.accountType === 'CASH_ISA') reasonCodes.push('ISA_ALLOWANCE');
       const constraintsChecked: ConstraintCode[] = ['30_DAY_LIQUIDITY', 'UPCOMING_COMMITMENTS', 'ACCOUNT_ACCESS'];
+      if (isIsa) {
+        reasonCodes.push('ISA_ALLOWANCE');
+        constraintsChecked.push('ISA_ALLOWANCE');
+      }
       if (preferInstant) constraintsChecked.push('USER_RULE');
       allocations.push({
         kind: 'SAVINGS',
         destinationAccountId: dest.id,
         destinationName: dest.name,
-        amount: left,
+        amount,
         reasonCodes,
         constraintsChecked,
         score: dest.interestRateBps,
-        meta: { rateBps: dest.interestRateBps, sourceRateBps: source.interestRateBps },
+        meta: { rateBps: dest.interestRateBps, sourceRateBps: source.interestRateBps, ...(isIsa ? { isaRemainingAfter: isaRemaining - amount } : {}) },
       });
-      left = 0;
+      left -= amount;
+      if (isIsa) isaRemaining -= amount;
     }
   }
 

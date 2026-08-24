@@ -9,6 +9,7 @@ import { analyseCategories, analyseSavings, type CategoryStat, type SavingsBehav
 import { computeSignals, type BehaviouralSignal } from './signals';
 import { detectRecurring, type RecurringSeries } from './recurring';
 import { buildRecommendations, type Recommendation } from './recommend';
+import { isaAllowance, type IsaAllowance } from './isa';
 
 export interface Analysis {
   snapshot: FinancialSnapshot;
@@ -23,6 +24,7 @@ export interface Analysis {
   signals: BehaviouralSignal[];
   recurring: RecurringSeries[];
   recommendations: Recommendation[];
+  isa: IsaAllowance;
 }
 
 // The whole deterministic pipeline in one place. Pure — pages and the AI tool layer both call this
@@ -54,5 +56,6 @@ export function analyseFinances(snapshot: FinancialSnapshot): Analysis {
     signals: computeSignals(snapshot),
     recurring: detectRecurring(snapshot),
     recommendations,
+    isa: isaAllowance(snapshot),
   };
 }

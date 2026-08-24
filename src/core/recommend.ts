@@ -89,6 +89,8 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
     } else if (a.kind === 'SAVINGS') {
       const rate = (a.meta.rateBps ?? 0) / 100;
       const annualInterest = Math.round((a.amount * ((a.meta.rateBps ?? 0) - (a.meta.sourceRateBps ?? 0))) / 10000);
+      const isIsa = a.reasonCodes.includes('ISA_ALLOWANCE');
+      const isaClause = isIsa ? ` It's inside your ISA wrapper, so that interest is tax-free.` : '';
       recs.push({
         id: `MOVE_CASH:${src ?? ''}:${a.destinationAccountId}`,
         type: 'MOVE_CASH',
@@ -104,7 +106,7 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         explanation: {
           what: `Move ${formatGBP(a.amount)} from ${srcName} to ${a.destinationName}.`,
           why: `Even at the lowest point of your next 30 days, ${srcName} holds roughly ${formatGBP(optimisation.surplus)} more than you need for upcoming commitments and your buffer. That cash is sitting idle.`,
-          whyThisAccount: `${a.destinationName} pays ${rate.toFixed(2)}% — the best accessible rate among your savings${preferInstant ? ', and it keeps instant access as your rules require' : ''}.`,
+          whyThisAccount: `${a.destinationName} pays ${rate.toFixed(2)}% — the best accessible rate among your savings${preferInstant ? ', and it keeps instant access as your rules require' : ''}.${isaClause}`,
           whatIfIgnored: `Your money stays liquid but earns about ${formatGBP(annualInterest)} less over the next year, assuming rates hold.`,
           confidence: 'HIGH',
         },

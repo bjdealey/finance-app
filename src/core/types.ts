@@ -124,7 +124,8 @@ export type ConstraintCode =
   | 'UPCOMING_COMMITMENTS'
   | 'ACCOUNT_ACCESS'
   | 'USER_RULE'
-  | 'DEBT_CONSTRAINT';
+  | 'DEBT_CONSTRAINT'
+  | 'ISA_ALLOWANCE';
 
 // Every recommendation carries one of these — no recommendation without an explanation trace.
 export interface ExplanationTrace {

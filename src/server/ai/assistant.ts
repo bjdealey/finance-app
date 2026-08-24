@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAnalysis } from '@/server/services/analysis';
 import { TOOLS, runTool } from './tools';
+import { ungroundedFigures } from './validate';
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
 
@@ -31,6 +32,7 @@ export async function askAssistant(userId: string, history: ChatMessage[]): Prom
   const client = new Anthropic();
   const messages: Anthropic.MessageParam[] = history.map((m) => ({ role: m.role, content: m.content }));
   const toolsUsed: string[] = [];
+  const toolOutputs: string[] = []; // every tool result this turn, for the post-hoc grounding check
 
   for (let i = 0; i < 6; i++) {
     const resp = await client.messages.create({
@@ -48,7 +50,13 @@ export async function askAssistant(userId: string, history: ChatMessage[]): Prom
         .map((b) => b.text)
         .join('\n')
         .trim();
-      return { text: text || 'I could not produce an answer.', toolsUsed };
+      if (!text) return { text: 'I could not produce an answer.', toolsUsed };
+      // Guardrail: never let a money figure through that didn't come from a tool (spec §32).
+      const ungrounded = ungroundedFigures(text, toolOutputs);
+      const caution = ungrounded.length
+        ? `\n\n---\n⚠️ I couldn't verify ${ungrounded.join(', ')} against your data — please double-check before relying on it.`
+        : '';
+      return { text: text + caution, toolsUsed };
     }
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
@@ -61,7 +69,9 @@ export async function askAssistant(userId: string, history: ChatMessage[]): Prom
         } catch (e) {
           result = { error: String(e) };
         }
-        toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
+        const json = JSON.stringify(result);
+        toolOutputs.push(json);
+        toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: json });
       }
     }
     messages.push({ role: 'user', content: toolResults });

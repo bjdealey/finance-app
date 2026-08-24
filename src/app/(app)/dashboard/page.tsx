@@ -103,6 +103,7 @@ export default async function DashboardPage() {
               <Row label="Cash runway"><span className="font-medium">{runwayMonths.toFixed(1)} months</span></Row>
               <Row label="Projected in 12 months"><Money pence={a.forecasts[365].projectedBalance} className="font-medium" /></Row>
               <Row label="Emergency fund"><span className="font-medium"><Money pence={a.liquidity.emergencyFundCurrent} /> / <Money pence={a.liquidity.emergencyFundTarget} /></span></Row>
+              <Row label="ISA allowance left"><span className="font-medium"><Money pence={a.isa.remaining} /> of <Money pence={a.isa.annualAllowance} /></span></Row>
             </dl>
           </Card>
         </div>

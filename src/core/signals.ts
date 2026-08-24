@@ -1,7 +1,7 @@
 import type { FinancialSnapshot, ConfidenceTier } from './types';
-import { isSpend, analyseSavings } from './behaviour';
+import { isSpend, analyseSavings, analyseCategories } from './behaviour';
 import { completeMonthsBefore, monthKey } from './dates';
-import { median } from './stats';
+import { mean, median, stdev } from './stats';
 import { formatGBP } from './money';
 
 export interface BehaviouralSignal {
@@ -162,6 +162,90 @@ export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[]
         unit: 'MULTIPLIER',
         confidence: tierFromCount(inCat(travelId).length),
         detail: `You spend about ${mult.toFixed(2)}× as much per month on travel in summer (Jun–Aug) as the rest of the year.`,
+      });
+    }
+  }
+
+  // Grocery creep — recent grocery spend vs the 12-month typical (median) month. People routinely
+  // under-estimate how much groceries drift upward.
+  const groId = catByName.get('groceries');
+  if (groId) {
+    const g = new Map(analyseCategories(snapshot).map((s) => [s.categoryId, s])).get(groId);
+    if (g && g.confidence !== 'INSUFFICIENT_DATA' && g.median > 0) {
+      const pct = Math.round(((g.recentAverage - g.median) / g.median) * 100);
+      signals.push({
+        id: 'grocery_underestimation',
+        label: 'Grocery creep',
+        value: pct,
+        unit: 'PERCENT',
+        confidence: g.confidence,
+        detail:
+          pct > 0
+            ? `Your recent grocery spend runs about ${pct}% above your typical month (${formatGBP(g.median)}) — easy to under-estimate.`
+            : `Your recent grocery spend is about ${Math.abs(pct)}% below your typical month (${formatGBP(g.median)}).`,
+      });
+    }
+  }
+
+  // Total monthly spend, used by the two whole-portfolio signals below.
+  const spendByMonth = new Map<string, number>();
+  for (const t of spend) spendByMonth.set(monthKey(t.date), (spendByMonth.get(monthKey(t.date)) ?? 0) + Math.abs(t.amount));
+  const monthlyTotals = [...months].map((mk) => spendByMonth.get(mk) ?? 0);
+
+  // Seasonal expense pattern — how much total monthly outgoings swing around their average
+  // (coefficient of variation). High = lumpy/seasonal; low = steady month to month.
+  const avgMonthly = mean(monthlyTotals);
+  if (spend.length > 0 && avgMonthly > 0) {
+    const cov = Math.round((stdev(monthlyTotals) / avgMonthly) * 100);
+    signals.push({
+      id: 'seasonal_expense_pattern',
+      label: 'Seasonal swing',
+      value: cov,
+      unit: 'PERCENT',
+      confidence: tierFromCount(spend.length),
+      detail: `Your total monthly spending swings about ${cov}% around its ${formatGBP(Math.round(avgMonthly))} average — the higher months point to seasonal or one-off costs.`,
+    });
+  }
+
+  // End-of-month spending — per-day spend in the last week (day ≥24, ~8 days) vs earlier (~22 days).
+  {
+    let endSum = 0;
+    let restSum = 0;
+    for (const t of spend) (dom(t.date) >= 24 ? (endSum += Math.abs(t.amount)) : (restSum += Math.abs(t.amount)));
+    const END_DAYS = 8;
+    const REST_DAYS = 22.4;
+    if (restSum > 0) {
+      const mult = +Math.min(5, endSum / END_DAYS / (restSum / REST_DAYS)).toFixed(2);
+      signals.push({
+        id: 'end_of_month_spending',
+        label: 'End-of-month spending',
+        value: mult,
+        unit: 'MULTIPLIER',
+        confidence: tierFromCount(spend.length),
+        detail: `You spend about ${mult.toFixed(2)}× as much per day in the last week of the month as earlier in it.`,
+      });
+    }
+  }
+
+  // Cash-buffer dependency — share of monthly income consumed by spending. The closer to 100%, the
+  // less slack there is and the more you rely on the cash buffer to smooth timing.
+  {
+    let incomeTotal = 0;
+    for (const t of snapshot.transactions) {
+      if (t.transactionType === 'INCOME' && t.amount > 0 && months.has(monthKey(t.date))) incomeTotal += t.amount;
+    }
+    const n = months.size;
+    const monthlyIncome = Math.round(incomeTotal / n);
+    const monthlySpend = Math.round(spend.reduce((s, t) => s + Math.abs(t.amount), 0) / n);
+    if (monthlyIncome > 0) {
+      const pct = Math.round((monthlySpend / monthlyIncome) * 100);
+      signals.push({
+        id: 'cash_buffer_dependency',
+        label: 'Buffer reliance',
+        value: pct,
+        unit: 'PERCENT',
+        confidence: tierFromCount(spend.length),
+        detail: `You spend about ${pct}% of your income each month, so there's ${pct >= 90 ? 'little' : 'some'} slack — you lean on your cash buffer to cover timing gaps.`,
       });
     }
   }

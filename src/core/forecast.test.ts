@@ -80,6 +80,26 @@ describe('forecast', () => {
     expect(f.projectedBalance).toBe(420_000); // ...but it lowers the projection
   });
 
+  it('schedules a loan payment as a KNOWN item on its due day (metadata-only account)', () => {
+    const main = acc({ id: 'main', accountType: 'CURRENT', openingBalance: 500_000 });
+    // A loan with a known monthly payment but no transaction history yet (freshly onboarded).
+    const loan = acc({ id: 'loan', accountType: 'LOAN', openingBalance: -1_200_000, minimumPayment: 45_000, paymentDueDay: 12 });
+    const f = forecast(snap({ asOf: '2026-08-05', accounts: [main, loan], transactions: [] }), 30);
+    const item = f.items.find((i) => i.source === 'KNOWN' && i.label === 'loan payment');
+    expect(item?.date).toBe('2026-08-12');
+    expect(item?.amount).toBe(-45_000);
+    expect(f.projectedBalance).toBe(455_000); // opening 500k less the 45k payment
+  });
+
+  it('does NOT double-count a loan payment once the account has transaction history', () => {
+    const main = acc({ id: 'main', accountType: 'CURRENT', openingBalance: 500_000 });
+    const loan = acc({ id: 'loan', accountType: 'LOAN', openingBalance: -1_200_000, minimumPayment: 45_000, paymentDueDay: 12 });
+    // Any real transaction on the loan means recurring detection owns the payment now.
+    const hist = txn({ accountId: 'loan', amount: 45_000, date: '2026-07-12', transactionType: 'TRANSFER' });
+    const f = forecast(snap({ asOf: '2026-08-05', accounts: [main, loan], transactions: [hist] }), 30);
+    expect(f.items.some((i) => i.label === 'loan payment')).toBe(false);
+  });
+
   it('produces all four horizons', () => {
     const main = acc({ id: 'main', accountType: 'CURRENT', openingBalance: 500_000 });
     const h = forecastHorizons(snap({ asOf: '2026-08-05', accounts: [main], transactions: monthly('ACME Payroll', 390_000, '25', [2025, 8], 'INCOME') }));

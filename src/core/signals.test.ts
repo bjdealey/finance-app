@@ -67,4 +67,43 @@ describe('computeSignals', () => {
     const sig = computeSignals(snap({ asOf: '2026-08-15', categories: cats, transactions: txns })).find((s) => s.id === 'travel_spending_multiplier')!;
     expect(sig.value).toBe(4); // summer 40000 / other 10000
   });
+
+  it('flags grocery creep — recent spend above the typical month', () => {
+    const cats = [cat({ id: 'gro', name: 'Groceries' })];
+    const recent = new Set(['2026-05', '2026-06', '2026-07']);
+    const txns = MONTHS.map((mk) => txn({ amount: recent.has(mk) ? -150_00 : -100_00, date: `${mk}-05`, transactionType: 'EXPENSE', categoryId: 'gro' }));
+    const sig = computeSignals(snap({ asOf: '2026-08-15', categories: cats, transactions: txns })).find((s) => s.id === 'grocery_underestimation')!;
+    expect(sig.value).toBe(50); // recent 150 vs median 100
+    expect(sig.unit).toBe('PERCENT');
+  });
+
+  it('measures the seasonal swing in total monthly spend', () => {
+    const lumpy = MONTHS.map((mk, i) => txn({ amount: i === 11 ? -1_000_00 : -100_00, date: `${mk}-10`, transactionType: 'EXPENSE' }));
+    const flat = MONTHS.map((mk) => txn({ amount: -100_00, date: `${mk}-10`, transactionType: 'EXPENSE' }));
+    const lumpySig = computeSignals(snap({ asOf: '2026-08-15', transactions: lumpy })).find((s) => s.id === 'seasonal_expense_pattern')!;
+    const flatSig = computeSignals(snap({ asOf: '2026-08-15', transactions: flat })).find((s) => s.id === 'seasonal_expense_pattern')!;
+    expect(lumpySig.value).toBeGreaterThan(0);
+    expect(flatSig.value).toBe(0); // constant spend => no swing
+    expect(lumpySig.unit).toBe('PERCENT');
+  });
+
+  it('computes the end-of-month spending multiplier', () => {
+    // Equal magnitude late (day 26) vs early (day 10), but late is squeezed into ~8 days vs ~22.4.
+    const txns = MONTHS.flatMap((mk) => [
+      txn({ amount: -20_000, date: `${mk}-26`, transactionType: 'EXPENSE' }),
+      txn({ amount: -20_000, date: `${mk}-10`, transactionType: 'EXPENSE' }),
+    ]);
+    const sig = computeSignals(snap({ asOf: '2026-08-15', transactions: txns })).find((s) => s.id === 'end_of_month_spending')!;
+    expect(sig.value).toBe(2.8); // (1/8) / (1/22.4)
+  });
+
+  it('computes cash-buffer dependency as spend over income', () => {
+    const txns = MONTHS.flatMap((mk) => [
+      txn({ amount: 300_000, date: `${mk}-25`, transactionType: 'INCOME' }),
+      txn({ amount: -240_000, date: `${mk}-10`, transactionType: 'EXPENSE' }),
+    ]);
+    const sig = computeSignals(snap({ asOf: '2026-08-15', transactions: txns })).find((s) => s.id === 'cash_buffer_dependency')!;
+    expect(sig.value).toBe(80); // 240000 / 300000
+    expect(sig.unit).toBe('PERCENT');
+  });
 });

@@ -2,7 +2,7 @@ import type { FinancialSnapshot } from './types';
 import { computeBalances } from './ledger';
 import { detectRecurring, type Frequency } from './recurring';
 import { analyseCategories } from './behaviour';
-import { addDaysISO, addMonthsISO } from './dates';
+import { addDaysISO, addMonthsISO, ym } from './dates';
 
 export type ForecastSource = 'KNOWN' | 'RECURRING' | 'PREDICTED' | 'USER_ENTERED';
 
@@ -61,6 +61,23 @@ function stepDate(iso: string, f: Frequency, intervalDays: number): string {
   }
 }
 
+// The dates on which a given day-of-month falls within (after, until], clamped to short months.
+function monthlyDueDates(dueDay: number, after: string, until: string): string[] {
+  const out: string[] = [];
+  let { y, m } = ym(after);
+  for (let guard = 0; guard < 14 && out.length < 14; guard++) {
+    const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // day 0 of next month = last day of this
+    const d = `${y}-${String(m).padStart(2, '0')}-${String(Math.min(dueDay, lastDay)).padStart(2, '0')}`;
+    if (d > until) break;
+    if (d > after) out.push(d);
+    if (++m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
 function futureOccurrences(start: string, f: Frequency, intervalDays: number, after: string, until: string): string[] {
   const out: string[] = [];
   let d = start;
@@ -113,6 +130,21 @@ export function forecast(snapshot: FinancialSnapshot, horizonDays: number): Fore
     if (days <= 0) break;
     const mid = addDaysISO(asOf, Math.min(horizonDays, w * 7 + Math.ceil(days / 2)));
     items.push({ date: mid, amount: -Math.round(predictedDaily * days), label: 'Predicted discretionary spending', source: 'PREDICTED' });
+  }
+
+  // Scheduled loan/mortgage payments (spec §6): committed minimum payments on their due day,
+  // funded from current-account cash. Only for debt accounts with NO transaction history — once
+  // real payments exist, recurring detection is the source of truth and emitting here would
+  // double-count. (Credit cards are left to the optimiser's pay-down, so they're excluded.)
+  // ponytail: metadata-only onboarding case; drop this once a payment link between the current
+  // account and the debt is modelled explicitly.
+  const debtWithHistory = new Set(snapshot.transactions.map((t) => t.accountId));
+  for (const a of snapshot.accounts) {
+    if (a.accountType !== 'LOAN' && a.accountType !== 'MORTGAGE') continue;
+    if (!a.minimumPayment || !a.paymentDueDay || debtWithHistory.has(a.id)) continue;
+    for (const d of monthlyDueDates(a.paymentDueDay, asOf, horizonEnd)) {
+      items.push({ date: d, amount: -Math.abs(a.minimumPayment), label: `${a.name} payment`, source: 'KNOWN' });
+    }
   }
 
   // Known / user-entered: pending (not-yet-settled) transactions on current accounts within the
