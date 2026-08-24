@@ -41,6 +41,7 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
   const preferInstant = snapshot.userRules.some((r) => r.active && r.ruleType === 'PREFER_INSTANT_ACCESS');
   const src = optimisation.sourceAccountId;
   const srcName = optimisation.sourceName;
+  const accountName = new Map(snapshot.accounts.map((a) => [a.id, a.name]));
 
   for (const a of optimisation.allocations) {
     if (a.kind === 'PAY_DEBT') {
@@ -60,7 +61,8 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         impact: { debtReduced: a.amount },
         explanation: {
           what: `Pay ${formatGBP(a.amount)} off ${a.destinationName} from ${srcName}.`,
-          why: `${a.destinationName} charges ${apr.toFixed(1)}% APR. Clearing it is effectively a guaranteed ${apr.toFixed(1)}% return — more than any of your savings accounts pay.`,
+          why: `You have cash to spare after your buffer and commitments, and ${a.destinationName} is charging ${apr.toFixed(1)}% APR on the balance you carry — expensive money to leave sitting there.`,
+          whyThisAccount: `Repaying ${a.destinationName} locks in a guaranteed ${apr.toFixed(1)}% — higher than any of your savings accounts pay, so clearing it beats parking the same cash in savings.`,
           whatIfIgnored: `Carrying this balance costs about ${formatGBP(aprAvoided)} in interest over the next year at the current rate.`,
           confidence: 'HIGH',
         },
@@ -127,6 +129,8 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         explanation: {
           what: `Keep ${formatGBP(a.amount)} available in ${a.destinationName}.`,
           why: `Held back as discretionary headroom for anything unexpected this month, on top of your required buffer.`,
+          whyThisAccount: `It stays in ${a.destinationName}, your everyday account, so it's there the moment you need it.`,
+          whatIfIgnored: `You could move it to savings for a little more interest, but you'd lose the on-hand cushion if an unplanned cost lands this month.`,
           confidence: 'MEDIUM',
         },
       });
@@ -137,6 +141,8 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
   for (const g of goals) {
     if (g.onTrack === false && g.requiredMonthly != null && g.requiredMonthly > g.recentMonthly) {
       const shortfall = g.requiredMonthly - g.recentMonthly;
+      const linkedName = g.goal.linkedAccountId ? accountName.get(g.goal.linkedAccountId) ?? null : null;
+      const by = g.goal.targetDate ? ` by ${g.goal.targetDate}` : '';
       recs.push({
         id: `GOAL_CONTRIBUTION:${g.goal.id}`,
         type: 'GOAL_CONTRIBUTION',
@@ -151,7 +157,9 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         impact: { monthlyShortfall: shortfall },
         explanation: {
           what: `Add about ${formatGBP(shortfall)}/month toward "${g.goal.name}".`,
-          why: `You're contributing about ${formatGBP(g.recentMonthly)}/month, but need ${formatGBP(g.requiredMonthly)}/month to reach ${formatGBP(g.goal.targetAmount)}${g.goal.targetDate ? ` by ${g.goal.targetDate}` : ''}.`,
+          why: `You're contributing about ${formatGBP(g.recentMonthly)}/month, but need ${formatGBP(g.requiredMonthly)}/month to reach ${formatGBP(g.goal.targetAmount)}${by}.`,
+          ...(linkedName ? { whyThisAccount: `Contributions go into ${linkedName}, the account linked to "${g.goal.name}", so its balance builds toward the target directly.` } : {}),
+          whatIfIgnored: `Staying at about ${formatGBP(g.recentMonthly)}/month leaves you short of ${formatGBP(g.goal.targetAmount)}${by}; the extra ${formatGBP(shortfall)}/month closes the gap.`,
           confidence: 'MEDIUM',
         },
       });
@@ -183,6 +191,7 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         explanation: {
           what: `Consider trimming ${name} by about ${formatGBP(reduction)}/month.`,
           why: `Your recent average is ${formatGBP(discretionary.expectedMonthlySpend)}/month (typical range ${formatGBP(discretionary.likelyRange[0])}–${formatGBP(discretionary.likelyRange[1])}). Easing to about ${formatGBP(target)} would free up roughly ${formatGBP(reduction * 12)} a year — no judgement, just the maths.`,
+          whatIfIgnored: `Keep going at the recent average and about ${formatGBP(reduction * 12)}/year stays in this category — completely fine if it's a deliberate choice.`,
           confidence: discretionary.confidence === 'HIGH' ? 'HIGH' : 'MEDIUM',
         },
       });

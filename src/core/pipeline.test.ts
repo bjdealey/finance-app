@@ -6,7 +6,7 @@ import { optimize } from './optimise';
 import { buildRecommendations } from './recommend';
 import { analyseCategories } from './behaviour';
 import { goalStatuses } from './goals';
-import { acc, txn, snap, cat, rule } from './testkit';
+import { acc, txn, snap, cat, rule, goal } from './testkit';
 import type { FinancialSnapshot } from './types';
 
 const MONTHS = ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
@@ -32,6 +32,8 @@ function buildSnapshot(): FinancialSnapshot {
     accounts,
     transactions: txns,
     categories: [cat({ id: 'rent', name: 'Rent' }), cat({ id: 'rest', name: 'Restaurants' })],
+    // A goal that's behind pace (needs ~£3.1k/mo, getting ~£500) so GOAL_CONTRIBUTION is exercised.
+    goals: [goal({ name: 'House Deposit', targetAmount: 3_000_000, targetDate: '2027-02-10', linkedAccountId: 'easy', priority: 10 })],
     userRules: [
       rule({ ruleType: 'MIN_CURRENT_BALANCE', params: { amountPence: 150_000 } }),
       rule({ ruleType: 'EMERGENCY_MONTHS', params: { months: 3 } }),
@@ -75,13 +77,20 @@ describe('financial pipeline', () => {
     expect(optimisation.allocations.some((a) => a.kind === 'EMERGENCY_FUND')).toBe(true);
   });
 
-  it('gives every recommendation a full explanation trace (spec §19)', () => {
+  it('gives every recommendation the full four-part explanation trace (spec §19)', () => {
     expect(recs.length).toBeGreaterThan(0);
+    const NEEDS_WHY_ACCOUNT = new Set(['PAY_DEBT', 'MOVE_CASH', 'GOAL_CONTRIBUTION']);
     for (const r of recs) {
       expect(r.explanation.what.length).toBeGreaterThan(0);
       expect(r.explanation.why.length).toBeGreaterThan(0);
+      expect((r.explanation.whatIfIgnored ?? '').length).toBeGreaterThan(0); // §19: "what happens if I don't?"
+      if (NEEDS_WHY_ACCOUNT.has(r.type) && r.destinationAccountId) {
+        expect((r.explanation.whyThisAccount ?? '').length).toBeGreaterThan(0); // §19: "why this account?"
+      }
       expect(['INSUFFICIENT_DATA', 'LOW', 'MEDIUM', 'HIGH']).toContain(r.explanation.confidence);
     }
+    // The behind-target goal is exercised here, so GOAL_CONTRIBUTION's trace is covered too.
+    expect(recs.some((r) => r.type === 'GOAL_CONTRIBUTION')).toBe(true);
     const debtRec = recs.find((r) => r.type === 'PAY_DEBT')!;
     expect(debtRec.expectedBenefit?.aprAvoidedPence).toBeGreaterThan(0);
   });
