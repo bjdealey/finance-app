@@ -1,7 +1,7 @@
 import { and, eq, gte, lte, ilike, or, desc, sql, type SQL } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import { transactions, accounts, categories, categoryRules } from '@/server/db/schema';
-import type { TransactionType } from '@/core/types';
+import type { TransactionType, TxnStatus } from '@/core/types';
 
 export interface TxnFilters {
   search?: string;
@@ -27,6 +27,7 @@ export interface TxnListRow {
   transactionType: TransactionType;
   transferGroupId: string | null;
   source: string;
+  status: string;
 }
 
 function buildWhere(userId: string, f: TxnFilters): SQL {
@@ -63,6 +64,7 @@ export async function listTransactions(
         transactionType: transactions.transactionType,
         transferGroupId: transactions.transferGroupId,
         source: transactions.source,
+        status: transactions.status,
       })
       .from(transactions)
       .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -104,6 +106,7 @@ export interface NewTransaction {
   merchant: string | null;
   categoryId: string | null;
   transactionType: TransactionType;
+  status: TxnStatus; // POSTED for settled; PENDING for a future-dated plan
 }
 
 // Add a user-entered transaction. The destination account is verified to belong to the user first
@@ -124,7 +127,7 @@ export async function addTransaction(userId: string, input: NewTransaction): Pro
     description: input.description,
     categoryId: input.categoryId,
     transactionType: input.transactionType,
-    status: 'POSTED',
+    status: input.status,
     source: 'MANUAL',
     confidence: input.categoryId ? 100 : 0,
   });

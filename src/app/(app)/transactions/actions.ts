@@ -39,6 +39,10 @@ export async function addTransactionAction(_prev: TxnFormState, formData: FormDa
   if (mag == null || mag === 0) return { error: 'Enter an amount greater than zero.' };
   const amount = OUTFLOW.has(d.transactionType) ? -Math.abs(mag) : Math.abs(mag);
   const desc = d.description || null;
+  // A future-dated entry is a PLAN (pending) — it shows in the forecast as a user-entered item and
+  // doesn't touch the current balance until its date arrives. Past/today entries are settled.
+  const today = new Date().toISOString().slice(0, 10);
+  const status = d.date > today ? 'PENDING' : 'POSTED';
   try {
     await addTransaction(user.id, {
       accountId: d.accountId,
@@ -48,6 +52,7 @@ export async function addTransactionAction(_prev: TxnFormState, formData: FormDa
       merchant: desc,
       categoryId: d.categoryId || null,
       transactionType: d.transactionType as TransactionType,
+      status,
     });
   } catch {
     return { error: 'Could not add the transaction — please check the account.' };

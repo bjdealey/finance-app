@@ -39,6 +39,7 @@ export function txn(p: Partial<Transaction> = {}): Transaction {
     transactionType: p.transactionType ?? 'UNKNOWN',
     status: p.status ?? 'POSTED',
     transferGroupId: p.transferGroupId ?? null,
+    source: p.source ?? 'SEED',
   };
 }
 

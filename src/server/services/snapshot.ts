@@ -37,6 +37,7 @@ function mapTxn(r: s.TransactionRow): Transaction {
     transactionType: r.transactionType,
     status: r.status,
     transferGroupId: r.transferGroupId,
+    source: r.source,
   };
 }
 

@@ -90,11 +90,14 @@ export function forecast(snapshot: FinancialSnapshot, horizonDays: number): Fore
 
   const items: ForecastItem[] = [];
   let recurringFixedExpenseMonthly = 0;
+  let recurringUncertainty = 0; // pence of amount spread from VARIABLE recurring bills within the horizon
   for (const r of recurring) {
     const sign = r.direction === 'INCOME' ? 1 : -1;
-    for (const d of futureOccurrences(r.nextExpectedDate, r.frequency, r.intervalDays, asOf, horizonEnd)) {
+    const occs = futureOccurrences(r.nextExpectedDate, r.frequency, r.intervalDays, asOf, horizonEnd);
+    for (const d of occs) {
       items.push({ date: d, amount: sign * r.expectedAmount, label: r.merchant, source: 'RECURRING' });
     }
+    if (r.isVariable) recurringUncertainty += occs.length * r.expectedAmount * (r.amountVariancePct / 100);
     if (r.direction === 'EXPENSE' && !r.isTransfer) {
       recurringFixedExpenseMonthly += r.expectedAmount * occurrencesPerMonth(r.frequency, r.intervalDays);
     }
@@ -112,6 +115,19 @@ export function forecast(snapshot: FinancialSnapshot, horizonDays: number): Fore
     items.push({ date: mid, amount: -Math.round(predictedDaily * days), label: 'Predicted discretionary spending', source: 'PREDICTED' });
   }
 
+  // Known / user-entered: pending (not-yet-settled) transactions on current accounts within the
+  // horizon. A future-dated MANUAL entry is a USER_ENTERED plan; any other pending item is KNOWN.
+  for (const t of snapshot.transactions) {
+    if (t.status !== 'PENDING' || !currentIds.has(t.accountId)) continue;
+    if (t.date <= asOf || t.date > horizonEnd) continue;
+    items.push({
+      date: t.date,
+      amount: t.amount,
+      label: t.merchant ?? t.description ?? (t.amount < 0 ? 'Planned payment' : 'Planned income'),
+      source: t.source === 'MANUAL' ? 'USER_ENTERED' : 'KNOWN',
+    });
+  }
+
   items.sort((a, b) => a.date.localeCompare(b.date));
   const totalIn = items.filter((i) => i.amount > 0).reduce((s, i) => s + i.amount, 0);
   const totalOut = items.filter((i) => i.amount < 0).reduce((s, i) => s + i.amount, 0);
@@ -119,7 +135,10 @@ export function forecast(snapshot: FinancialSnapshot, horizonDays: number): Fore
   const predictedTotal = Math.abs(
     items.filter((i) => i.source === 'PREDICTED').reduce((s, i) => s + i.amount, 0),
   );
-  const band = Math.round(0.2 * predictedTotal); // predicted spend is the uncertain part
+  // Uncertainty = predicted-discretionary spread + variable recurring-bill spread. They're
+  // independent, so combine in quadrature. KNOWN / USER_ENTERED items are treated as certain.
+  const predictedBand = 0.2 * predictedTotal;
+  const band = Math.round(Math.sqrt(predictedBand * predictedBand + recurringUncertainty * recurringUncertainty));
   return { asOf, horizonDays, openingBalance, items, totalIn, totalOut, projectedBalance, low: projectedBalance - band, high: projectedBalance + band };
 }
 

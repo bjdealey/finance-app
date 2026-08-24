@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { computeSignals } from './signals';
-import { acc, txn, snap } from './testkit';
+import { acc, txn, snap, cat } from './testkit';
+
+const MONTHS = ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
 
 describe('computeSignals', () => {
   it('computes the weekend multiplier and gates on insufficient data', () => {
@@ -36,5 +38,33 @@ describe('computeSignals', () => {
     const sig = computeSignals(snap({ asOf: '2026-05-01', accounts: [easy], transactions: txns })).find((s) => s.id === 'savings_withdrawal_rate')!;
     expect(sig.value).toBe(50);
     expect(sig.unit).toBe('PERCENT');
+  });
+
+  it('reports subscriptions as a share of spending', () => {
+    const cats = [cat({ id: 'subs', name: 'Subscriptions' }), cat({ id: 'gro', name: 'Groceries' })];
+    const txns = MONTHS.flatMap((mk) => [
+      txn({ amount: -1_000, date: `${mk}-12`, transactionType: 'EXPENSE', categoryId: 'subs' }),
+      txn({ amount: -9_000, date: `${mk}-05`, transactionType: 'EXPENSE', categoryId: 'gro' }),
+    ]);
+    const sig = computeSignals(snap({ asOf: '2026-08-15', categories: cats, transactions: txns })).find((s) => s.id === 'subscription_usage')!;
+    expect(sig.value).toBe(10); // 1000 / 10000
+    expect(sig.unit).toBe('PERCENT');
+  });
+
+  it('flags how often a credit-card balance carried (interest charged)', () => {
+    const card = acc({ id: 'cc', accountType: 'CREDIT_CARD' });
+    const txns = MONTHS.flatMap((mk, i) => (i < 6 ? [txn({ accountId: 'cc', amount: -500, date: `${mk}-01`, transactionType: 'INTEREST' })] : []));
+    const sig = computeSignals(snap({ asOf: '2026-08-15', accounts: [card], transactions: txns })).find((s) => s.id === 'credit_card_payment_behaviour')!;
+    expect(sig.value).toBe(50); // interest charged in 6 of 12 months
+  });
+
+  it('computes the summer travel multiplier', () => {
+    const cats = [cat({ id: 'trv', name: 'Travel' })];
+    const txns = MONTHS.map((mk) => {
+      const summer = [6, 7, 8].includes(+mk.slice(5, 7));
+      return txn({ amount: summer ? -40_000 : -10_000, date: `${mk}-15`, transactionType: 'EXPENSE', categoryId: 'trv' });
+    });
+    const sig = computeSignals(snap({ asOf: '2026-08-15', categories: cats, transactions: txns })).find((s) => s.id === 'travel_spending_multiplier')!;
+    expect(sig.value).toBe(4); // summer 40000 / other 10000
   });
 });

@@ -94,7 +94,10 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
               return (
                 <tr key={t.id}>
                   <td className="w-20 py-2.5 pl-5 text-muted">{formatDateShort(t.date)}</td>
-                  <td className="py-2.5">{t.merchant ?? t.description ?? '—'}</td>
+                  <td className="py-2.5">
+                    {t.merchant ?? t.description ?? '—'}
+                    {t.status === 'PENDING' && <span className="ml-2"><Badge tone="warn">planned</Badge></span>}
+                  </td>
                   <td className="hidden py-2.5 text-muted lg:table-cell">{t.accountName}</td>
                   <td className="py-2.5">
                     {isTransfer ? <Badge>transfer</Badge> : <CategorySelect txnId={t.id} categoryId={t.categoryId} options={catOpts} />}

@@ -5,9 +5,10 @@ import { mean, median, stdev, clamp0 } from './stats';
 
 const WINDOW = 12;
 
-// A transaction that reduces net worth through spending (outflow, not an internal transfer).
+// A settled transaction that reduces net worth through spending (outflow, not an internal transfer).
+// Only POSTED counts — a PENDING future plan isn't behaviour that has actually happened.
 export function isSpend(t: Transaction): boolean {
-  return t.status !== 'REVERSED' && t.amount < 0 && !isInternalTransfer(t);
+  return t.status === 'POSTED' && t.amount < 0 && !isInternalTransfer(t);
 }
 
 export interface CategoryStat {
@@ -23,6 +24,7 @@ export interface CategoryStat {
   expectedMonthlySpend: number; // recent-weighted baseline
   likelyRange: [number, number];
   highSpendThreshold: number;
+  seasonalityStrength: number; // 0–1: coefficient of variation of monthly spend (higher = lumpier/seasonal)
   activeMonths: number;
   confidence: ConfidenceTier;
 }
@@ -82,6 +84,7 @@ export function computeCategoryStat(categoryId: string, totals: number[]): Categ
     expectedMonthlySpend,
     likelyRange: [Math.round(clamp0(monthlyAverage - sd)), Math.round(monthlyAverage + sd)],
     highSpendThreshold: Math.round(monthlyAverage + 1.5 * sd),
+    seasonalityStrength: monthlyAverage > 0 ? Math.min(1, Math.round((sd / monthlyAverage) * 100) / 100) : 0,
     activeMonths,
     confidence: confidenceFromActiveMonths(activeMonths),
   };

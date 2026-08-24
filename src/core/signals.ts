@@ -2,6 +2,7 @@ import type { FinancialSnapshot, ConfidenceTier } from './types';
 import { isSpend, analyseSavings } from './behaviour';
 import { completeMonthsBefore, monthKey } from './dates';
 import { median } from './stats';
+import { formatGBP } from './money';
 
 export interface BehaviouralSignal {
   id: string;
@@ -84,6 +85,85 @@ export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[]
       confidence: savings.confidence,
       detail: `You withdraw about ${savings.withdrawalRatePct}% of what you transfer into savings back out again.`,
     });
+  }
+
+  // Category lookups for the category-based signals below.
+  const catByName = new Map(snapshot.categories.map((c) => [c.name.toLowerCase(), c.id]));
+  const inCat = (id: string | undefined) => (id ? spend.filter((t) => t.categoryId === id) : []);
+
+  // Subscription usage — recurring subscriptions as a share of all spending.
+  const subsId = catByName.get('subscriptions');
+  if (subsId) {
+    const totalSpend = spend.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const subs = inCat(subsId);
+    const subsSpend = subs.reduce((s, t) => s + Math.abs(t.amount), 0);
+    if (totalSpend > 0 && subsSpend > 0) {
+      const pct = Math.round((subsSpend / totalSpend) * 100);
+      signals.push({
+        id: 'subscription_usage',
+        label: 'Subscriptions',
+        value: pct,
+        unit: 'PERCENT',
+        confidence: tierFromCount(subs.length),
+        detail: `Subscriptions are about ${pct}% of your spending — roughly ${formatGBP(Math.round(subsSpend / months.size))} a month.`,
+      });
+    }
+  }
+
+  // Credit-card payment behaviour — how often a balance carried (you were charged interest).
+  const cardIds = new Set(snapshot.accounts.filter((a) => a.accountType === 'CREDIT_CARD').map((a) => a.id));
+  if (cardIds.size > 0) {
+    const interestMonths = new Set<string>();
+    let cardTxns = 0;
+    for (const t of snapshot.transactions) {
+      if (!cardIds.has(t.accountId) || !months.has(monthKey(t.date))) continue;
+      cardTxns++;
+      if (t.transactionType === 'INTEREST' && t.amount < 0) interestMonths.add(monthKey(t.date));
+    }
+    const pct = Math.round((interestMonths.size / months.size) * 100);
+    signals.push({
+      id: 'credit_card_payment_behaviour',
+      label: 'Card interest',
+      value: pct,
+      unit: 'PERCENT',
+      confidence: tierFromCount(cardTxns),
+      detail: pct > 0
+        ? `You were charged credit-card interest in about ${pct}% of the last 12 months — that happens when a balance carries past the statement date.`
+        : `You cleared your credit cards without being charged interest over the last 12 months.`,
+    });
+  }
+
+  // Seasonal travel — summer (Jun–Aug) travel spend vs the rest of the year.
+  const travelId = catByName.get('travel');
+  if (travelId) {
+    const SUMMER = new Set([6, 7, 8]);
+    let summerTotal = 0;
+    let otherTotal = 0;
+    const summerMonths = new Set<string>();
+    const otherMonths = new Set<string>();
+    for (const t of inCat(travelId)) {
+      const mk = monthKey(t.date);
+      if (SUMMER.has(+mk.slice(5, 7))) {
+        summerTotal += Math.abs(t.amount);
+        summerMonths.add(mk);
+      } else {
+        otherTotal += Math.abs(t.amount);
+        otherMonths.add(mk);
+      }
+    }
+    const summerAvg = summerMonths.size ? summerTotal / summerMonths.size : 0;
+    const otherAvg = otherMonths.size ? otherTotal / otherMonths.size : 0;
+    if (summerAvg > 0 && summerMonths.size + otherMonths.size >= 2) {
+      const mult = +Math.min(9, summerAvg / Math.max(otherAvg, 1)).toFixed(2);
+      signals.push({
+        id: 'travel_spending_multiplier',
+        label: 'Summer travel',
+        value: mult,
+        unit: 'MULTIPLIER',
+        confidence: tierFromCount(inCat(travelId).length),
+        detail: `You spend about ${mult.toFixed(2)}× as much per month on travel in summer (Jun–Aug) as the rest of the year.`,
+      });
+    }
   }
 
   return signals;

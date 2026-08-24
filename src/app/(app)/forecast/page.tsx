@@ -11,6 +11,12 @@ const SOURCE_TONE: Record<ForecastSource, 'pos' | 'accent' | 'warn' | 'default'>
   PREDICTED: 'warn',
   USER_ENTERED: 'default',
 };
+const SOURCE_LABEL: Record<ForecastSource, string> = {
+  KNOWN: 'known',
+  RECURRING: 'recurring',
+  PREDICTED: 'predicted',
+  USER_ENTERED: 'planned',
+};
 
 export default async function ForecastPage() {
   const user = await requireUser();
@@ -43,6 +49,7 @@ export default async function ForecastPage() {
         <Badge tone="accent">recurring</Badge>
         <Badge tone="warn">predicted</Badge>
         <Badge tone="pos">known</Badge>
+        <Badge>planned</Badge>
       </div>
 
       <h2 className="mt-6 mb-3 font-semibold">Next 30 days — how we get there</h2>
@@ -58,7 +65,7 @@ export default async function ForecastPage() {
               <tr key={idx}>
                 <td className="w-20 py-2.5 pl-5 text-muted">{formatDateShort(i.date)}</td>
                 <td className="py-2.5">{i.label}</td>
-                <td className="py-2.5"><Badge tone={SOURCE_TONE[i.source]}>{i.source.toLowerCase()}</Badge></td>
+                <td className="py-2.5"><Badge tone={SOURCE_TONE[i.source]}>{SOURCE_LABEL[i.source]}</Badge></td>
                 <td className="py-2.5 pr-5 text-right"><Money pence={i.amount} colored signed /></td>
               </tr>
             ))}

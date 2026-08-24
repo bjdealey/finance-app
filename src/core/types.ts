@@ -23,6 +23,7 @@ export type TransactionType =
   | 'UNKNOWN';
 
 export type TxnStatus = 'POSTED' | 'PENDING' | 'REVERSED';
+export type TxnSource = 'SEED' | 'CSV' | 'MANUAL';
 export type CategoryKind = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'NEUTRAL';
 export type TaxWrapper = 'CASH_ISA' | 'STOCKS_SHARES_ISA' | null;
 
@@ -65,6 +66,7 @@ export interface Transaction {
   transactionType: TransactionType;
   status: TxnStatus;
   transferGroupId: string | null;
+  source: TxnSource; // SEED | CSV | MANUAL — a manual future-dated (pending) item is USER_ENTERED in forecasts
 }
 
 export interface Category {

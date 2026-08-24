@@ -30,6 +30,13 @@ describe('computeCategoryStat', () => {
   it('reports INSUFFICIENT_DATA with fewer than 2 active months', () => {
     expect(computeCategoryStat('x', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5000]).confidence).toBe('INSUFFICIENT_DATA');
   });
+
+  it('measures seasonality strength — lumpy spend scores higher than flat', () => {
+    const flat = computeCategoryStat('flat', Array(12).fill(10_000));
+    const lumpy = computeCategoryStat('lumpy', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 120_000]);
+    expect(flat.seasonalityStrength).toBe(0); // constant spend => no variation
+    expect(lumpy.seasonalityStrength).toBe(1); // one big month => clamped max
+  });
 });
 
 describe('analyseSavings', () => {

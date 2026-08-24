@@ -33,7 +33,7 @@ export function TransactionForm({ accounts, categories, today }: {
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </Field>
-          <Field label="Date">
+          <Field label="Date" hint="A future date records it as a planned item (shows in your forecast).">
             <input type="date" name="date" required defaultValue={today} className={inputCls} />
           </Field>
           <Field label="Type" hint="Sets whether the amount is money in or out.">

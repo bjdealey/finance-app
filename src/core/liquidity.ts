@@ -46,7 +46,7 @@ export function computeLiquidity(snapshot: FinancialSnapshot, state: FinancialSt
   const conservativeTrough = trough - predictedBand;
 
   const knownUpcomingExpenses = -forecast30.items
-    .filter((i) => i.source === 'RECURRING' && i.amount < 0)
+    .filter((i) => (i.source === 'RECURRING' || i.source === 'KNOWN' || i.source === 'USER_ENTERED') && i.amount < 0)
     .reduce((s, i) => s + i.amount, 0);
   const expectedNearTermSpending = -forecast30.items
     .filter((i) => i.source === 'PREDICTED')

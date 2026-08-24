@@ -53,6 +53,33 @@ describe('forecast', () => {
     expect(f.high).toBeGreaterThan(f.projectedBalance);
   });
 
+  it('widens the confidence band for a variable recurring bill', () => {
+    const main = acc({ id: 'main', accountType: 'CURRENT', openingBalance: 500_000 });
+    // A monthly utility whose amount swings month to month => a VARIABLE recurring series that adds
+    // uncertainty to the band, even though the bill is otherwise fully explained (little predicted).
+    const amts = [-11000, -16000, -13000, -17000, -12000, -15000, -14000, -16500, -11500, -15500, -13500, -16000];
+    const bills = [];
+    let y = 2025, m = 8;
+    for (let i = 0; i < 12; i++) {
+      bills.push(txn({ accountId: 'main', merchant: 'Octopus Energy', amount: amts[i], date: `${y}-${String(m).padStart(2, '0')}-06`, transactionType: 'EXPENSE', categoryId: 'utilities' }));
+      if (++m > 12) { m = 1; y++; }
+    }
+    const f = forecast(snap({ asOf: '2026-08-05', accounts: [main], transactions: bills }), 30);
+    expect(f.high).toBeGreaterThan(f.projectedBalance); // non-zero band from recurring variance
+    expect(f.low).toBeLessThan(f.projectedBalance);
+  });
+
+  it('surfaces a pending future-dated transaction as a planned (USER_ENTERED) item', () => {
+    const main = acc({ id: 'main', accountType: 'CURRENT', openingBalance: 500_000 });
+    // Manual + pending + future-dated => a user-entered plan.
+    const planned = txn({ accountId: 'main', merchant: 'Car service', amount: -80_000, date: '2026-08-15', status: 'PENDING', source: 'MANUAL' });
+    const f = forecast(snap({ asOf: '2026-08-05', accounts: [main], transactions: [planned] }), 30);
+    const item = f.items.find((i) => i.source === 'USER_ENTERED');
+    expect(item?.amount).toBe(-80_000);
+    expect(f.openingBalance).toBe(500_000); // pending excluded from settled balance
+    expect(f.projectedBalance).toBe(420_000); // ...but it lowers the projection
+  });
+
   it('produces all four horizons', () => {
     const main = acc({ id: 'main', accountType: 'CURRENT', openingBalance: 500_000 });
     const h = forecastHorizons(snap({ asOf: '2026-08-05', accounts: [main], transactions: monthly('ACME Payroll', 390_000, '25', [2025, 8], 'INCOME') }));
