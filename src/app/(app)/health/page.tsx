@@ -36,6 +36,13 @@ export default async function HealthPage() {
           <Metric label="Invested (long-term)" value={s.investmentValue} />
         </Section>
 
+        <Section title="Cash by purpose" explanation="Not all money is interchangeable — everything you hold, grouped by what it's actually for.">
+          <Metric label="Emergency reserve" value={a.liquidity.buckets.emergencyReserve} />
+          <Metric label="Near-term spending buffer" value={a.liquidity.buckets.nearTermBuffer} />
+          <Metric label="Discretionary (spare)" value={a.liquidity.buckets.discretionaryCash} />
+          <Metric label="Long-term / locked" value={a.liquidity.buckets.longTermCapital} />
+        </Section>
+
         <Section title="Income & spending" explanation="Averaged from your last 12 months.">
           <Metric label="Monthly income" value={s.monthlyIncome} />
           <Metric label="Essential spending" value={s.essentialMonthlySpend} />

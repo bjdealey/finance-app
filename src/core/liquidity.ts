@@ -1,4 +1,4 @@
-import type { FinancialSnapshot } from './types';
+import type { FinancialSnapshot, Account } from './types';
 import type { FinancialState } from './state';
 import type { Forecast } from './forecast';
 import { computeBalances } from './ledger';
@@ -13,6 +13,14 @@ export interface Liquidity {
   emergencyFundCurrent: number;
   emergencyFundGap: number;
   surplusCash: number; // safely movable out of current accounts right now
+  // Spec §15: the same cash split by PURPOSE, not by where it sits — cash is not all interchangeable.
+  // The four buckets partition total positive cash exactly (they sum to it).
+  buckets: {
+    emergencyReserve: number; // earmarked emergency fund, capped at target
+    nearTermBuffer: number; // required buffer + known upcoming + predicted near-term spend
+    discretionaryCash: number; // accessible cash beyond the above — genuinely spare
+    longTermCapital: number; // investments + fixed-term/restricted savings — not available near-term
+  };
 }
 
 function userMinCurrent(snapshot: FinancialSnapshot): number | null {
@@ -62,6 +70,21 @@ export function computeLiquidity(snapshot: FinancialSnapshot, state: FinancialSt
 
   const surplusCash = Math.max(0, conservativeTrough - requiredCashBuffer);
 
+  // Partition every pound of cash by purpose (spec §15), so nothing is shown as one interchangeable
+  // "available" pot. Long-term = invested or locked; the accessible remainder splits into the emergency
+  // reserve (up to target), the near-term spending buffer, then whatever is genuinely spare.
+  const positiveBal = (id: string) => Math.max(0, bal(id));
+  const assetAccounts = snapshot.accounts.filter((a) =>
+    ['CURRENT', 'SAVINGS', 'CASH_ISA', 'INVESTMENT'].includes(a.accountType),
+  );
+  const isLocked = (a: Account) => a.accountType === 'INVESTMENT' || a.accessType === 'FIXED_TERM' || a.accessType === 'RESTRICTED';
+  const totalCash = assetAccounts.reduce((s, a) => s + positiveBal(a.id), 0);
+  const longTermCapital = assetAccounts.filter(isLocked).reduce((s, a) => s + positiveBal(a.id), 0);
+  const accessible = totalCash - longTermCapital;
+  const emergencyReserve = Math.min(Math.max(0, Math.min(emergencyFundCurrent, emergencyFundTarget)), accessible);
+  const nearTermBuffer = Math.min(requiredCashBuffer + knownUpcomingExpenses + expectedNearTermSpending, accessible - emergencyReserve);
+  const discretionaryCash = accessible - emergencyReserve - nearTermBuffer;
+
   return {
     requiredCashBuffer,
     currentAccountCash: state.currentAccountCash,
@@ -72,5 +95,6 @@ export function computeLiquidity(snapshot: FinancialSnapshot, state: FinancialSt
     emergencyFundCurrent,
     emergencyFundGap,
     surplusCash,
+    buckets: { emergencyReserve, nearTermBuffer, discretionaryCash, longTermCapital },
   };
 }
