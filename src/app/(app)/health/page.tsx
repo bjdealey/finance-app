@@ -1,5 +1,6 @@
 import { requireUser } from '@/server/auth/session';
 import { getAnalysis } from '@/server/services/analysis';
+import { debtSummary } from '@/core/debt';
 import { Card, Money, Badge, PageHeader } from '@/components/ui';
 
 export default async function HealthPage() {
@@ -20,6 +21,7 @@ export default async function HealthPage() {
   const potentialExtra = a.recommendations.filter((r) => r.type === 'MOVE_CASH').reduce((sum, r) => sum + (r.expectedBenefit?.annualInterestPence ?? 0), 0);
   const goalsBehind = a.goals.filter((g) => g.onTrack === false).length;
   const runway = s.essentialMonthlySpend > 0 ? s.liquidCash / s.essentialMonthlySpend : 0;
+  const debts = debtSummary(a.snapshot);
 
   return (
     <div>
@@ -50,10 +52,38 @@ export default async function HealthPage() {
           <TextMetric label="Effective savings rate" value={`${s.effectiveSavingsRate}%`} />
         </Section>
 
-        <Section title="Debt" explanation="What you owe and what it costs.">
+        <Section title="Debt" explanation="What you owe, what it costs, and how long it clears at your current payment.">
           <Metric label="Credit card debt" value={s.creditCardDebt} />
           <Metric label="Other debt" value={s.otherDebt} />
           <Metric label="Interest cost / year" value={annualDebtCost} />
+          {debts.length === 0 ? (
+            <p className="pt-1 text-xs text-muted">No debt — nothing to clear.</p>
+          ) : (
+            <div className="mt-2 space-y-2.5">
+              {debts.map((d) => (
+                <div key={d.accountId} className="rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{d.name}</span>
+                    <Money pence={d.balance} className="font-medium text-neg" />
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted">
+                    {(d.aprBps / 100).toFixed(2)}% APR{d.utilisationPct != null && <> · {d.utilisationPct}% of limit used</>}
+                  </div>
+                  {d.payoff && d.monthlyPayment != null && (
+                    d.payoff.clears ? (
+                      <p className="mt-1.5 text-xs text-muted">
+                        At <Money pence={d.monthlyPayment} />/mo it clears in {payoffTime(d.payoff.monthsToClear!)}, costing <Money pence={d.payoff.totalInterest!} /> in interest.
+                      </p>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-warn">
+                        At the <Money pence={d.monthlyPayment} />/mo minimum this never clears — interest alone is <Money pence={d.payoff.monthlyInterest} />/mo. Paying more is the only way to make progress.
+                      </p>
+                    )
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           {annualDebtCost > 0 && <p className="pt-1 text-xs text-warn">High-cost debt is your best return — clearing it beats any savings rate.</p>}
         </Section>
 
@@ -94,6 +124,13 @@ export default async function HealthPage() {
       </div>
     </div>
   );
+}
+
+function payoffTime(months: number): string {
+  if (months < 24) return `${months} month${months === 1 ? '' : 's'}`;
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  return m ? `${y}y ${m}m` : `${y} years`;
 }
 
 function Section({ title, explanation, children }: { title: string; explanation: string; children: React.ReactNode }) {

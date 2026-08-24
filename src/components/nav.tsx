@@ -23,6 +23,7 @@ const MORE: Item[] = [
   { href: '/scenarios', label: 'What if?' },
   { href: '/health', label: 'Health' },
   { href: '/assistant', label: 'Assistant' },
+  { href: '/categories', label: 'Categories' },
   { href: '/settings', label: 'Settings' },
 ];
 
