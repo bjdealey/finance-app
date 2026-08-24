@@ -7,6 +7,12 @@ import { db } from '@/server/db/client';
 import { users } from '@/server/db/schema';
 import { hashPassword, verifyPassword } from './password';
 import { createSession, destroySession } from './session';
+import { hitRateLimit, clearRateLimit } from './rate-limit';
+
+// A lazily-computed argon2 hash to verify against when the email is unknown, so a missing account
+// takes the same time to reject as a real one (closes a user-enumeration timing oracle).
+let dummyHashPromise: Promise<string> | undefined;
+const dummyHash = () => (dummyHashPromise ??= hashPassword('timing-equaliser-not-a-real-secret'));
 
 export interface AuthState {
   error?: string;
@@ -44,16 +50,26 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid details' };
   const { email, password } = parsed.data;
 
+  if (hitRateLimit(email)) {
+    return { error: 'Too many attempts. Please wait a few minutes and try again.' };
+  }
+
   const rows = await db
     .select({ id: users.id, passwordHash: users.passwordHash })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
   const user = rows[0];
-  // Same generic message whether the email is unknown or the password is wrong (no account enumeration).
-  if (!user || !(await verifyPassword(user.passwordHash, password))) {
+
+  // Always pay one argon2 verify — real hash if the user exists, a dummy otherwise — so timing can't
+  // reveal whether the email is registered. Same generic message either way (no account enumeration).
+  const ok = user ? await verifyPassword(user.passwordHash, password) : false;
+  if (!user) await verifyPassword(await dummyHash(), password);
+  if (!user || !ok) {
     return { error: 'Incorrect email or password.' };
   }
+
+  clearRateLimit(email);
   await createSession(user.id);
   redirect('/dashboard');
 }

@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/format';
 
 export default async function RecommendationsPage() {
   const user = await requireUser();
-  const { recommendations, liquidity, snapshot } = await getAnalysis(user.id);
+  const { recommendations, liquidity, snapshot, optimisation } = await getAnalysis(user.id);
   const accountName = new Map(snapshot.accounts.map((a) => [a.id, a.name]));
   const decisions = await getDecisions(user.id);
   const now = new Date();
@@ -31,7 +31,7 @@ export default async function RecommendationsPage() {
 
       <Card className="mb-6 bg-surface-2">
         <div className="flex flex-wrap gap-x-10 gap-y-3 text-sm">
-          <Stat label="Movable surplus identified" value={liquidity.surplusCash} />
+          <Stat label="Movable surplus identified" value={optimisation.surplus} />
           <Stat label="Buffer kept in current account" value={liquidity.requiredCashBuffer} />
           <Stat label="30-day low point (protected)" value={liquidity.thirtyDayTrough} />
         </div>
@@ -44,7 +44,7 @@ export default async function RecommendationsPage() {
       ) : (
         <div className="space-y-4">
           {pending.map((rec) => (
-            <RecommendationCard key={rec.id} rec={rec} accountName={accountName} footer={<RecommendationActions rec={rec} />} />
+            <RecommendationCard key={rec.id} rec={rec} accountName={accountName} footer={<RecommendationActions recId={rec.id} />} />
           ))}
         </div>
       )}

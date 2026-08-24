@@ -1,13 +1,12 @@
 'use client';
 
 import { useTransition } from 'react';
-import type { Recommendation } from '@/core/recommend';
 import { decideAction } from '@/app/(app)/recommendations/decide';
 import type { Decision } from '@/server/services/recommendations';
 
-export function RecommendationActions({ rec }: { rec: Recommendation }) {
+export function RecommendationActions({ recId }: { recId: string }) {
   const [pending, start] = useTransition();
-  const decide = (status: Decision, snoozeDays?: number) => start(() => decideAction(rec, status, snoozeDays));
+  const decide = (status: Decision, snoozeDays?: number) => start(() => decideAction(recId, status, snoozeDays));
 
   return (
     <div className="flex flex-wrap items-center gap-2">

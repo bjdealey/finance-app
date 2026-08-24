@@ -103,7 +103,7 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         impact: { moved: a.amount },
         explanation: {
           what: `Move ${formatGBP(a.amount)} from ${srcName} to ${a.destinationName}.`,
-          why: `Even at the lowest point of your next 30 days, ${srcName} holds roughly ${formatGBP(liquidity.surplusCash)} more than you need for upcoming commitments and your buffer. That cash is sitting idle.`,
+          why: `Even at the lowest point of your next 30 days, ${srcName} holds roughly ${formatGBP(optimisation.surplus)} more than you need for upcoming commitments and your buffer. That cash is sitting idle.`,
           whyThisAccount: `${a.destinationName} pays ${rate.toFixed(2)}% — the best accessible rate among your savings${preferInstant ? ', and it keeps instant access as your rules require' : ''}.`,
           whatIfIgnored: `Your money stays liquid but earns about ${formatGBP(annualInterest)} less over the next year, assuming rates hold.`,
           confidence: 'HIGH',

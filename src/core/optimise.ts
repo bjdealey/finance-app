@@ -45,7 +45,12 @@ export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liq
     .filter((a) => a.accountType === 'CURRENT' && !doNotTouch.has(a.id))
     .sort((a, b) => bal(b.id) - bal(a.id))[0];
 
-  const surplus = liquidity.surplusCash;
+  // Cap the movable amount at the SOURCE account's own balance. `surplusCash` is computed on the
+  // aggregate current-account trough, so with several current accounts it can exceed any single
+  // account's balance — and you can't move more cash out of an account than it holds (spec §40).
+  // ponytail: sweeps only the single largest current account; a multi-account sweep would place the rest.
+  const sourceBalance = source ? Math.max(0, bal(source.id)) : 0;
+  const surplus = Math.min(liquidity.surplusCash, sourceBalance);
   const allocations: Allocation[] = [];
   if (!source || surplus <= 0) {
     return { surplus, sourceAccountId: source?.id ?? null, sourceName: source?.name ?? '', allocations };
