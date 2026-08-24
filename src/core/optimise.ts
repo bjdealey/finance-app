@@ -24,7 +24,7 @@ export interface OptimisationResult {
   allocations: Allocation[];
 }
 
-const HIGH_COST_APR_BPS = 1000; // 10%+
+const HIGH_COST_APR_BPS = 1000; // 10%+ — the line above which debt is flagged HIGH_COST_DEBT vs ordinary DEBT_INTEREST
 // An emergency reserve guards against being forced onto high-cost credit in a shock, so it's worth
 // almost as much as clearing high-cost debt you already owe (certain), and more than earning ordinary
 // savings interest. Scored a hair under the high-cost band so existing debt is still cleared first.
@@ -78,23 +78,32 @@ export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liq
 
   const candidates: Candidate[] = [];
 
-  // High-cost debt: paying down an APR "returns" that APR, so it scores at the rate it avoids.
-  for (const card of snapshot.accounts.filter(
-    (a) => a.accountType === 'CREDIT_CARD' && bal(a.id) < 0 && a.interestRateBps >= HIGH_COST_APR_BPS,
+  // Debt paydown: clearing a balance "returns" its APR risk-free, so each debt scores at its rate and
+  // competes head-to-head with savings. Any debt whose APR beats leaving the cash in the source account
+  // is a candidate — credit cards and loans alike — and the greedy sort pays the priciest first, only
+  // overpaying a loan when its rate out-scores the best saver. Mortgages are excluded: overpaying them
+  // carries early-repayment charges and annual caps this engine doesn't model.
+  // ponytail: mortgages excluded; include them once ERC + overpayment-cap metadata exists to constrain.
+  for (const debt of snapshot.accounts.filter(
+    (a) =>
+      (a.accountType === 'CREDIT_CARD' || a.accountType === 'LOAN') &&
+      bal(a.id) < 0 &&
+      a.interestRateBps > source.interestRateBps,
   )) {
+    const aprBps = debt.interestRateBps;
     candidates.push({
-      score: card.interestRateBps,
-      cap: -bal(card.id),
+      score: aprBps,
+      cap: -bal(debt.id),
       isIsa: false,
       build: (amount) => ({
         kind: 'PAY_DEBT',
-        destinationAccountId: card.id,
-        destinationName: card.name,
+        destinationAccountId: debt.id,
+        destinationName: debt.name,
         amount,
-        reasonCodes: ['HIGH_COST_DEBT'],
+        reasonCodes: [aprBps >= HIGH_COST_APR_BPS ? 'HIGH_COST_DEBT' : 'DEBT_INTEREST'],
         constraintsChecked: ['30_DAY_LIQUIDITY', 'DEBT_CONSTRAINT'],
-        score: card.interestRateBps,
-        meta: { aprBps: card.interestRateBps },
+        score: aprBps,
+        meta: { aprBps },
       }),
     });
   }

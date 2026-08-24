@@ -60,7 +60,7 @@ export function buildRecommendations(inp: RecommendationInputs): Recommendation[
         impact: { debtReduced: a.amount },
         explanation: {
           what: `Pay ${formatGBP(a.amount)} off ${a.destinationName} from ${srcName}.`,
-          why: `${a.destinationName} charges ${apr.toFixed(1)}% APR — the most expensive money you hold. Clearing it is effectively a guaranteed ${apr.toFixed(1)}% return, better than any savings rate.`,
+          why: `${a.destinationName} charges ${apr.toFixed(1)}% APR. Clearing it is effectively a guaranteed ${apr.toFixed(1)}% return — more than any of your savings accounts pay.`,
           whatIfIgnored: `Carrying this balance costs about ${formatGBP(aprAvoided)} in interest over the next year at the current rate.`,
           confidence: 'HIGH',
         },

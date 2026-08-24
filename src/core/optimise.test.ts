@@ -58,6 +58,28 @@ describe('optimize — scoring drives the order (spec §17)', () => {
   });
 });
 
+describe('optimize — debt breadth: loans and cards compete on APR (spec §16)', () => {
+  it('overpays a loan ahead of a lower-rate saver, but ignores debt cheaper than holding the cash', () => {
+    const accounts = [
+      acc({ id: 'main', name: 'Main', accountType: 'CURRENT', interestRateBps: 100, openingBalance: 2_000_000 }), // £20k, earns 1%
+      acc({ id: 'loan', name: 'Car Loan', accountType: 'LOAN', interestRateBps: 690, minimumPayment: 24_500, openingBalance: -780_000 }), // 6.9%, owes £7,800
+      acc({ id: 'cheap', name: 'Cheap Loan', accountType: 'LOAN', interestRateBps: 50, openingBalance: -500_000 }), // 0.5% < 1% source
+      acc({ id: 'saver', name: 'Saver', accountType: 'SAVINGS', accessType: 'INSTANT', interestRateBps: 480, openingBalance: 0 }), // 4.8%
+    ];
+    const result = optimize(snap({ accounts }), STATE, liq(1_000_000)); // £10k surplus
+    const moves = result.allocations.filter((a) => a.kind !== 'BUFFER');
+
+    // 6.9% loan out-scores the 4.8% saver → funded first; the 0.5% loan never appears (holding cash beats it).
+    expect(moves.map((a) => a.destinationAccountId)).toEqual(['loan', 'saver']);
+    const loanMove = moves.find((a) => a.destinationAccountId === 'loan')!;
+    expect(loanMove.kind).toBe('PAY_DEBT');
+    expect(loanMove.score).toBe(690);
+    expect(loanMove.reasonCodes).toContain('DEBT_INTEREST'); // 6.9% isn't "high cost"
+    expect(loanMove.reasonCodes).not.toContain('HIGH_COST_DEBT');
+    expect(result.allocations.find((a) => a.destinationAccountId === 'cheap')).toBeUndefined();
+  });
+});
+
 describe('optimize — respects the ISA annual allowance (spec §16)', () => {
   it('caps an ISA move at the remaining allowance and overflows to the next-best saver', () => {
     const accounts = [
