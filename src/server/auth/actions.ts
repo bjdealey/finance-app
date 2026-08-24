@@ -61,7 +61,11 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid details' };
   const { email, password } = parsed.data;
 
-  if (hitRateLimit(email)) {
+  // Throttle per email (brute force against one account) AND per client IP: password-spraying rotates
+  // the email across many accounts, so the per-email key never fires — the source IP is what caps it.
+  const h = await headers();
+  const ipKey = `login-ip:${clientIpFrom((n) => h.get(n))}`;
+  if (hitRateLimit(ipKey) || hitRateLimit(email)) {
     return { error: 'Too many attempts. Please wait a few minutes and try again.' };
   }
 
@@ -81,6 +85,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   }
 
   clearRateLimit(email);
+  clearRateLimit(ipKey); // a real success clears the IP budget too, so a shared/NAT address isn't locked out
   await createSession(user.id);
   redirect('/dashboard');
 }

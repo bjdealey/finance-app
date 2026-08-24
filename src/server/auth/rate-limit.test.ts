@@ -29,6 +29,15 @@ describe('login rate limiter', () => {
     for (let i = 0; i < RATE_LIMIT_MAX; i++) expect(hitRateLimit(ip)).toBe(false);
     expect(hitRateLimit(ip)).toBe(true);
   });
+
+  it('caps a password-spray across many emails from one IP (login checks the IP key too)', () => {
+    const ipKey = 'login-ip:198.51.100.23';
+    // Mirrors loginAction: check the IP key, then the per-email key. Each attempt uses a fresh email,
+    // so the email keys stay cold — only the shared IP key accumulates and trips.
+    const attempt = (email: string) => hitRateLimit(ipKey) || hitRateLimit(email);
+    for (let i = 0; i < RATE_LIMIT_MAX; i++) expect(attempt(`spray${i}@example.com`)).toBe(false);
+    expect(attempt('spray-final@example.com')).toBe(true); // IP key trips even though every email is new
+  });
 });
 
 describe('clientIpFrom', () => {
