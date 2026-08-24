@@ -31,11 +31,30 @@ describe('computeCategoryStat', () => {
     expect(computeCategoryStat('x', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5000]).confidence).toBe('INSUFFICIENT_DATA');
   });
 
-  it('measures seasonality strength — lumpy spend scores higher than flat', () => {
-    const flat = computeCategoryStat('flat', Array(12).fill(10_000));
-    const lumpy = computeCategoryStat('lumpy', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 120_000]);
-    expect(flat.seasonalityStrength).toBe(0); // constant spend => no variation
-    expect(lumpy.seasonalityStrength).toBe(1); // one big month => clamped max
+  it('classifies trend by a significant regression slope, not a two-bucket ratio', () => {
+    const rise = Array.from({ length: 12 }, (_, i) => (100 + 10 * i) * 100); // steady climb
+    const fall = Array.from({ length: 12 }, (_, i) => (210 - 10 * i) * 100); // steady decline
+    const spike = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 120].map((x) => x * 1000); // 11 flat + 1 lump
+    const noisy = [12, 8, 11, 9, 13, 7, 12, 8, 11, 9, 13, 7].map((x) => x * 1000); // oscillates, no drift
+    expect(computeCategoryStat('rise', rise).trend).toBe('RISING');
+    expect(computeCategoryStat('fall', fall).trend).toBe('FALLING');
+    expect(computeCategoryStat('spike', spike).trend).toBe('STABLE'); // lone spike isn't a trend (was RISING under the old ratio)
+    expect(computeCategoryStat('noisy', noisy).trend).toBe('STABLE');
+  });
+
+  it('scores a contiguous season high, but flat/noise/one-off spend ~0', () => {
+    const season = [1, 1, 1, 1, 1, 8, 8, 8, 1, 1, 1, 1].map((x) => x * 10_000); // three adjacent high months
+    expect(computeCategoryStat('flat', Array(12).fill(10_000)).seasonalityStrength).toBe(0);
+    expect(computeCategoryStat('spike', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 120_000]).seasonalityStrength).toBe(0); // lone one-off, not a season
+    expect(computeCategoryStat('noise', [0, 100_000, 0, 100_000, 0, 100_000, 0, 100_000, 0, 100_000, 0, 100_000]).seasonalityStrength).toBe(0); // alternating noise
+    expect(computeCategoryStat('season', season).seasonalityStrength).toBeGreaterThan(0.3);
+  });
+
+  it('names the peak month when the month keys are supplied', () => {
+    const months = ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
+    const season = [1, 1, 1, 1, 1, 8, 8, 8, 1, 1, 1, 1].map((x) => x * 10_000); // peak block starts at index 5 -> 2026-01
+    expect(computeCategoryStat('season', season, months).peakMonth).toBe('January');
+    expect(computeCategoryStat('flat', Array(12).fill(10_000), months).peakMonth).toBeNull();
   });
 });
 

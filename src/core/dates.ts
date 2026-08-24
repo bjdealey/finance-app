@@ -4,6 +4,13 @@ export function monthKey(iso: string): string {
   return iso.slice(0, 7); // YYYY-MM
 }
 
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+// Full month name from a 'YYYY-MM' or 'YYYY-MM-DD' string.
+export function monthLabel(key: string): string {
+  return MONTH_NAMES[(+key.slice(5, 7) - 1 + 12) % 12] ?? key;
+}
+
 export function ym(iso: string): { y: number; m: number } {
   return { y: +iso.slice(0, 4), m: +iso.slice(5, 7) };
 }

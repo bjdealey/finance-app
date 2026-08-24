@@ -77,14 +77,16 @@ describe('computeSignals', () => {
     expect(sig.unit).toBe('PERCENT');
   });
 
-  it('measures the seasonal swing in total monthly spend', () => {
-    const lumpy = MONTHS.map((mk, i) => txn({ amount: i === 11 ? -1_000_00 : -100_00, date: `${mk}-10`, transactionType: 'EXPENSE' }));
+  it('reports a contiguous seasonal shape, and stays silent on flat/one-off spend', () => {
+    const season = MONTHS.map((mk, i) => txn({ amount: i >= 5 && i <= 7 ? -80_000 : -10_000, date: `${mk}-10`, transactionType: 'EXPENSE' }));
     const flat = MONTHS.map((mk) => txn({ amount: -100_00, date: `${mk}-10`, transactionType: 'EXPENSE' }));
-    const lumpySig = computeSignals(snap({ asOf: '2026-08-15', transactions: lumpy })).find((s) => s.id === 'seasonal_expense_pattern')!;
-    const flatSig = computeSignals(snap({ asOf: '2026-08-15', transactions: flat })).find((s) => s.id === 'seasonal_expense_pattern')!;
-    expect(lumpySig.value).toBeGreaterThan(0);
-    expect(flatSig.value).toBe(0); // constant spend => no swing
-    expect(lumpySig.unit).toBe('PERCENT');
+    const spike = MONTHS.map((mk, i) => txn({ amount: i === 11 ? -1_000_00 : -100_00, date: `${mk}-10`, transactionType: 'EXPENSE' }));
+    const sig = (tx: ReturnType<typeof txn>[]) => computeSignals(snap({ asOf: '2026-08-15', transactions: tx })).find((s) => s.id === 'seasonal_expense_pattern');
+    const seasonSig = sig(season)!;
+    expect(seasonSig.value).toBeGreaterThan(15);
+    expect(seasonSig.unit).toBe('PERCENT');
+    expect(sig(flat)).toBeUndefined(); // constant spend => no season
+    expect(sig(spike)).toBeUndefined(); // one isolated big month => a one-off, not a season
   });
 
   it('computes the end-of-month spending multiplier', () => {

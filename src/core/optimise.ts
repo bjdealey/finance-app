@@ -25,11 +25,26 @@ export interface OptimisationResult {
 }
 
 const HIGH_COST_APR_BPS = 1000; // 10%+
+// An emergency reserve guards against being forced onto high-cost credit in a shock, so it's worth
+// almost as much as clearing high-cost debt you already owe (certain), and more than earning ordinary
+// savings interest. Scored a hair under the high-cost band so existing debt is still cleared first.
+const EMERGENCY_SCORE_BPS = HIGH_COST_APR_BPS - 1;
 
-// Deterministic allocation of movable current-account surplus. Priority: clear high-cost debt,
-// then close any emergency-fund gap, then park the rest in the best accessible savings, keeping a
-// small discretionary buffer. Conservative: only ever allocates `liquidity.surplusCash`, which is
-// already floored so the 30-day trough stays above the required buffer (spec §40).
+// A candidate destination for the surplus: the score that ranks it and the most it can absorb.
+interface Candidate {
+  score: number; // expected annual benefit in bps — the common currency the allocator ranks on
+  cap: number; // most this destination can take (debt owed, emergency gap, or unbounded for savings)
+  isIsa: boolean; // ISA destinations additionally share the annual allowance budget
+  build: (amount: number) => Allocation;
+}
+
+// Deterministic scoring/constraint allocator (spec §16/§17). Every movable pound of current-account
+// surplus is offered to a ranked list of candidate destinations and greedily placed best-score-first,
+// subject to hard constraints. Score is a common "expected annual benefit in bps" scale — paying
+// high-cost debt scores at the APR it avoids, an emergency top-up just under the high-cost band, a
+// saving at the rate it earns — so the ordering (debt → emergency → savings → buffer) is an EMERGENT
+// property of the scores, not a hardcoded waterfall. Conservative: only ever allocates
+// `liquidity.surplusCash`, already floored so the 30-day trough stays above the required buffer (§40).
 export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liquidity: Liquidity): OptimisationResult {
   const balances = new Map(computeBalances(snapshot).map((b) => [b.accountId, b.balance]));
   const bal = (id: string) => balances.get(id) ?? 0;
@@ -46,9 +61,9 @@ export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liq
     .filter((a) => a.accountType === 'CURRENT' && !doNotTouch.has(a.id))
     .sort((a, b) => bal(b.id) - bal(a.id))[0];
 
-  // Cap the movable amount at the SOURCE account's own balance. `surplusCash` is computed on the
+  // Cap the movable amount at the SOURCE account's own balance: `surplusCash` is computed on the
   // aggregate current-account trough, so with several current accounts it can exceed any single
-  // account's balance — and you can't move more cash out of an account than it holds (spec §40).
+  // account's balance, and you can't move out more than one account holds (spec §40).
   // ponytail: sweeps only the single largest current account; a multi-account sweep would place the rest.
   const sourceBalance = source ? Math.max(0, bal(source.id)) : 0;
   const surplus = Math.min(liquidity.surplusCash, sourceBalance);
@@ -61,86 +76,108 @@ export function optimize(snapshot: FinancialSnapshot, state: FinancialState, liq
   const buffer = Math.round(0.1 * surplus);
   let left = surplus - buffer;
 
-  // 1. High-cost debt (paying down APR beats any savings rate).
-  for (const card of snapshot.accounts
-    .filter((a) => a.accountType === 'CREDIT_CARD' && bal(a.id) < 0 && a.interestRateBps >= HIGH_COST_APR_BPS)
-    .sort((a, b) => b.interestRateBps - a.interestRateBps)) {
-    if (left <= 0) break;
-    const amount = Math.min(left, -bal(card.id));
-    if (amount <= 0) continue;
-    allocations.push({
-      kind: 'PAY_DEBT',
-      destinationAccountId: card.id,
-      destinationName: card.name,
-      amount,
-      reasonCodes: ['HIGH_COST_DEBT'],
-      constraintsChecked: ['30_DAY_LIQUIDITY', 'DEBT_CONSTRAINT'],
-      score: 100000 + card.interestRateBps,
-      meta: { aprBps: card.interestRateBps },
+  const candidates: Candidate[] = [];
+
+  // High-cost debt: paying down an APR "returns" that APR, so it scores at the rate it avoids.
+  for (const card of snapshot.accounts.filter(
+    (a) => a.accountType === 'CREDIT_CARD' && bal(a.id) < 0 && a.interestRateBps >= HIGH_COST_APR_BPS,
+  )) {
+    candidates.push({
+      score: card.interestRateBps,
+      cap: -bal(card.id),
+      isIsa: false,
+      build: (amount) => ({
+        kind: 'PAY_DEBT',
+        destinationAccountId: card.id,
+        destinationName: card.name,
+        amount,
+        reasonCodes: ['HIGH_COST_DEBT'],
+        constraintsChecked: ['30_DAY_LIQUIDITY', 'DEBT_CONSTRAINT'],
+        score: card.interestRateBps,
+        meta: { aprBps: card.interestRateBps },
+      }),
     });
+  }
+
+  // Emergency-fund gap: a required liquidity floor, scored just under high-cost debt.
+  if (liquidity.emergencyFundGap > 0) {
+    const emg = snapshot.accounts.find((a) => /emergency/i.test(a.name) || /emergency/i.test(a.purpose ?? ''));
+    if (emg) {
+      candidates.push({
+        score: EMERGENCY_SCORE_BPS,
+        cap: liquidity.emergencyFundGap,
+        isIsa: false,
+        build: (amount) => ({
+          kind: 'EMERGENCY_FUND',
+          destinationAccountId: emg.id,
+          destinationName: emg.name,
+          amount,
+          reasonCodes: ['EMERGENCY_FUND_GAP', 'LOW_LIQUIDITY'],
+          constraintsChecked: ['EMERGENCY_FUND', '30_DAY_LIQUIDITY'],
+          score: EMERGENCY_SCORE_BPS,
+          meta: { rateBps: emg.interestRateBps },
+        }),
+      });
+    }
+  }
+
+  // Accessible savings/ISA: score at the rate earned, but only when it beats leaving the cash in the
+  // current account. ISA destinations also share the annual allowance (enforced in the allocator).
+  let savingsDests = snapshot.accounts.filter(
+    (a) =>
+      (a.accountType === 'SAVINGS' || a.accountType === 'CASH_ISA') &&
+      (a.accessType === 'INSTANT' || a.accessType === 'NOTICE') &&
+      !doNotTouch.has(a.id) &&
+      a.interestRateBps > source.interestRateBps,
+  );
+  if (preferInstant) savingsDests = savingsDests.filter((a) => a.accessType === 'INSTANT');
+  for (const dest of savingsDests) {
+    const isIsa = dest.accountType === 'CASH_ISA' || dest.taxWrapper != null;
+    candidates.push({
+      score: dest.interestRateBps,
+      cap: Number.POSITIVE_INFINITY,
+      isIsa,
+      build: (amount) => {
+        const reasonCodes: ReasonCode[] = ['EXCESS_CURRENT_BALANCE', 'HIGHER_SAVINGS_RATE'];
+        const constraintsChecked: ConstraintCode[] = ['30_DAY_LIQUIDITY', 'UPCOMING_COMMITMENTS', 'ACCOUNT_ACCESS'];
+        if (isIsa) {
+          reasonCodes.push('ISA_ALLOWANCE');
+          constraintsChecked.push('ISA_ALLOWANCE');
+        }
+        if (preferInstant) constraintsChecked.push('USER_RULE');
+        return {
+          kind: 'SAVINGS',
+          destinationAccountId: dest.id,
+          destinationName: dest.name,
+          amount,
+          reasonCodes,
+          constraintsChecked,
+          score: dest.interestRateBps,
+          meta: { rateBps: dest.interestRateBps, sourceRateBps: source.interestRateBps },
+        };
+      },
+    });
+  }
+
+  // Greedily fund the highest-scoring destinations first, subject to the remaining surplus, each
+  // destination's cap, and the shared ISA annual allowance across all ISA destinations.
+  candidates.sort((a, b) => b.score - a.score);
+  let isaRemaining = isaAllowance(snapshot).remaining;
+  for (const c of candidates) {
+    if (left <= 0) break;
+    let amount = Math.min(left, c.cap);
+    if (c.isIsa) amount = Math.min(amount, isaRemaining);
+    if (amount <= 0) continue; // e.g. ISA allowance exhausted -> fall through to the next-best saver
+    const alloc = c.build(amount);
+    if (c.isIsa) {
+      isaRemaining -= amount;
+      alloc.meta.isaRemainingAfter = isaRemaining;
+    }
+    allocations.push(alloc);
     left -= amount;
   }
 
-  // 2. Emergency-fund gap.
-  if (left > 0 && liquidity.emergencyFundGap > 0) {
-    const emg = snapshot.accounts.find((a) => /emergency/i.test(a.name) || /emergency/i.test(a.purpose ?? ''));
-    if (emg) {
-      const amount = Math.min(left, liquidity.emergencyFundGap);
-      allocations.push({
-        kind: 'EMERGENCY_FUND',
-        destinationAccountId: emg.id,
-        destinationName: emg.name,
-        amount,
-        reasonCodes: ['EMERGENCY_FUND_GAP', 'LOW_LIQUIDITY'],
-        constraintsChecked: ['EMERGENCY_FUND', '30_DAY_LIQUIDITY'],
-        score: 90000,
-        meta: { rateBps: emg.interestRateBps },
-      });
-      left -= amount;
-    }
-  }
-
-  // 3. Remaining -> accessible savings/ISA by rate. Walk them best-first so that when an ISA's
-  // remaining annual allowance can't absorb the whole surplus, the overflow lands in the next-best
-  // non-ISA saver instead of silently exceeding the £20k limit (spec §16 tax treatment).
-  if (left > 0) {
-    let dests = snapshot.accounts.filter(
-      (a) =>
-        (a.accountType === 'SAVINGS' || a.accountType === 'CASH_ISA') &&
-        (a.accessType === 'INSTANT' || a.accessType === 'NOTICE') &&
-        !doNotTouch.has(a.id),
-    );
-    if (preferInstant) dests = dests.filter((a) => a.accessType === 'INSTANT');
-    dests.sort((a, b) => b.interestRateBps - a.interestRateBps);
-    let isaRemaining = isaAllowance(snapshot).remaining;
-    for (const dest of dests) {
-      if (left <= 0 || dest.interestRateBps <= source.interestRateBps) break; // sorted: nothing better follows
-      const isIsa = dest.accountType === 'CASH_ISA' || dest.taxWrapper != null;
-      const amount = isIsa ? Math.min(left, isaRemaining) : left;
-      if (amount <= 0) continue; // ISA allowance exhausted -> fall through to the next saver
-      const reasonCodes: ReasonCode[] = ['EXCESS_CURRENT_BALANCE', 'HIGHER_SAVINGS_RATE'];
-      const constraintsChecked: ConstraintCode[] = ['30_DAY_LIQUIDITY', 'UPCOMING_COMMITMENTS', 'ACCOUNT_ACCESS'];
-      if (isIsa) {
-        reasonCodes.push('ISA_ALLOWANCE');
-        constraintsChecked.push('ISA_ALLOWANCE');
-      }
-      if (preferInstant) constraintsChecked.push('USER_RULE');
-      allocations.push({
-        kind: 'SAVINGS',
-        destinationAccountId: dest.id,
-        destinationName: dest.name,
-        amount,
-        reasonCodes,
-        constraintsChecked,
-        score: dest.interestRateBps,
-        meta: { rateBps: dest.interestRateBps, sourceRateBps: source.interestRateBps, ...(isIsa ? { isaRemainingAfter: isaRemaining - amount } : {}) },
-      });
-      left -= amount;
-      if (isIsa) isaRemaining -= amount;
-    }
-  }
-
-  // 4. Discretionary buffer (stays put) — plus anything that couldn't be placed.
+  // Discretionary buffer (stays put) — plus anything that couldn't be placed.
   const kept = buffer + Math.max(0, left);
   if (kept > 0) {
     allocations.push({

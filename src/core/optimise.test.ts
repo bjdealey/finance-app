@@ -37,6 +37,27 @@ describe('optimize — never over-allocates a single source (spec §40)', () => 
   });
 });
 
+describe('optimize — scoring drives the order (spec §17)', () => {
+  it('ranks destinations by a real benefit-rate score, not a hardcoded waterfall or tier constants', () => {
+    const accounts = [
+      acc({ id: 'main', name: 'Main', accountType: 'CURRENT', interestRateBps: 50, openingBalance: 3_000_000 }),
+      acc({ id: 'card', name: 'Card', accountType: 'CREDIT_CARD', interestRateBps: 2290, openingBalance: -100_000 }),
+      acc({ id: 'emergency', name: 'Emergency Fund', accountType: 'SAVINGS', accessType: 'INSTANT', interestRateBps: 0, openingBalance: 0 }),
+      acc({ id: 'saver', name: 'Saver', accountType: 'SAVINGS', accessType: 'INSTANT', interestRateBps: 500, openingBalance: 0 }),
+    ];
+    const result = optimize(snap({ accounts }), STATE, liq(1_000_000, { emergencyFundGap: 300_000 }));
+    const moves = result.allocations.filter((a) => a.kind !== 'BUFFER');
+
+    // Emitted in descending score order — the score actually selects the order (999 = emergency).
+    expect(moves.map((a) => a.score)).toEqual([2290, 999, 500]);
+    // Score is the genuine benefit rate in bps, not the old 100000/90000 tier constants.
+    expect(moves.find((a) => a.kind === 'PAY_DEBT')!.score).toBe(2290); // the APR it avoids
+    expect(moves.find((a) => a.kind === 'SAVINGS')!.score).toBe(500); // the rate it earns
+    // Emergent priority: 22.9% debt > emergency reserve > 5% saver.
+    expect(moves.map((a) => a.kind)).toEqual(['PAY_DEBT', 'EMERGENCY_FUND', 'SAVINGS']);
+  });
+});
+
 describe('optimize — respects the ISA annual allowance (spec §16)', () => {
   it('caps an ISA move at the remaining allowance and overflows to the next-best saver', () => {
     const accounts = [

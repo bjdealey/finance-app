@@ -1,7 +1,8 @@
 import type { FinancialSnapshot, ConfidenceTier } from './types';
 import { isSpend, analyseSavings, analyseCategories } from './behaviour';
-import { completeMonthsBefore, monthKey } from './dates';
-import { mean, median, stdev } from './stats';
+import { completeMonthsBefore, monthKey, monthLabel } from './dates';
+import { mean, median } from './stats';
+import { seasonality } from './seasonality';
 import { formatGBP } from './money';
 
 export interface BehaviouralSignal {
@@ -28,7 +29,8 @@ function tierFromCount(n: number): ConfidenceTier {
 
 // Data-driven behavioural signals with confidence tiers. Never asserts on insufficient data.
 export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[] {
-  const months = new Set(completeMonthsBefore(snapshot.asOf, 12));
+  const monthArr = completeMonthsBefore(snapshot.asOf, 12);
+  const months = new Set(monthArr);
   const spend = snapshot.transactions.filter((t) => isSpend(t) && months.has(monthKey(t.date)));
   const signals: BehaviouralSignal[] = [];
 
@@ -190,21 +192,24 @@ export function computeSignals(snapshot: FinancialSnapshot): BehaviouralSignal[]
   // Total monthly spend, used by the two whole-portfolio signals below.
   const spendByMonth = new Map<string, number>();
   for (const t of spend) spendByMonth.set(monthKey(t.date), (spendByMonth.get(monthKey(t.date)) ?? 0) + Math.abs(t.amount));
-  const monthlyTotals = [...months].map((mk) => spendByMonth.get(mk) ?? 0);
+  const monthlyTotals = monthArr.map((mk) => spendByMonth.get(mk) ?? 0);
 
-  // Seasonal expense pattern — how much total monthly outgoings swing around their average
-  // (coefficient of variation). High = lumpy/seasonal; low = steady month to month.
-  const avgMonthly = mean(monthlyTotals);
-  if (spend.length > 0 && avgMonthly > 0) {
-    const cov = Math.round((stdev(monthlyTotals) / avgMonthly) * 100);
-    signals.push({
-      id: 'seasonal_expense_pattern',
-      label: 'Seasonal swing',
-      value: cov,
-      unit: 'PERCENT',
-      confidence: tierFromCount(spend.length),
-      detail: `Your total monthly spending swings about ${cov}% around its ${formatGBP(Math.round(avgMonthly))} average — the higher months point to seasonal or one-off costs.`,
-    });
+  // Seasonal expense pattern — a genuine season is a CONTIGUOUS run of elevated months, not mere
+  // month-to-month noise or a single lump. We can read the shape from one year but can't yet prove it
+  // recurs, so confidence is capped and only a detectable season is reported.
+  {
+    const seas = seasonality(monthlyTotals);
+    const activeMonths = monthlyTotals.filter((x) => x > 0).length;
+    if (seas.strength >= 0.15 && seas.peakIndex >= 0 && activeMonths >= 6) {
+      signals.push({
+        id: 'seasonal_expense_pattern',
+        label: 'Seasonal spending',
+        value: Math.round(seas.strength * 100),
+        unit: 'PERCENT',
+        confidence: activeMonths >= 10 ? 'MEDIUM' : 'LOW', // a one-year window can't confirm recurrence
+        detail: `Your spending follows a seasonal shape, peaking around ${monthLabel(monthArr[seas.peakIndex])}. One year of data shows the pattern but can't yet confirm it repeats.`,
+      });
+    }
   }
 
   // End-of-month spending — per-day spend in the last week (day ≥24, ~8 days) vs earlier (~22 days).

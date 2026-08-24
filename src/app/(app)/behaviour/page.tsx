@@ -97,7 +97,7 @@ export default async function BehaviourPage() {
                 </td>
                 <td className="hidden px-3 py-3 text-muted md:table-cell">
                   {TREND[s.trend]}
-                  {s.seasonalityStrength >= 0.6 && <span className="ml-2 text-xs text-accent">seasonal</span>}
+                  {s.seasonalityStrength >= 0.3 && s.peakMonth && <span className="ml-2 text-xs text-accent">seasonal · peaks {s.peakMonth}</span>}
                 </td>
                 <td className="hidden w-32 px-3 py-3 lg:table-cell"><Sparkline values={s.monthlyTotals} /></td>
                 <td className="px-5 py-3 text-right"><Badge tone={CONF_TONE[s.confidence]}>{CONF_LABEL[s.confidence]}</Badge></td>

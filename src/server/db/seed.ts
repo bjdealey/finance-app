@@ -7,6 +7,8 @@ import { seedCategoriesAndRules } from './defaults';
 import { hashPassword } from '../auth/password';
 import { loadSnapshot } from '../services/snapshot';
 import { computeBalances } from '../../core/ledger';
+import { detectTransfers } from '../../core/transfers';
+import type { Transaction } from '../../core/types';
 import { mulberry32, randInt, pick } from '../../core/prng';
 import { poundsToPence as gbp } from '../../core/money';
 
@@ -65,6 +67,10 @@ async function main() {
   await addAcc('ssisa', { name: 'Stocks & Shares ISA', institution: 'Vanguard', accountType: 'INVESTMENT', accessType: 'RESTRICTED', taxWrapper: 'STOCKS_SHARES_ISA', openingBalance: gbp(11000), purpose: 'Long-term investing' });
   await addAcc('amex', { name: 'Amex Rewards', institution: 'American Express', accountType: 'CREDIT_CARD', accessType: 'UNKNOWN', interestRateBps: 2290, creditLimit: gbp(5000), minimumPayment: gbp(25), paymentDueDay: 15, statementDay: 1, openingBalance: gbp(-620) });
   await addAcc('barclaycard', { name: 'Barclaycard', institution: 'Barclays', accountType: 'CREDIT_CARD', accessType: 'UNKNOWN', interestRateBps: 2490, creditLimit: gbp(3000), minimumPayment: gbp(25), paymentDueDay: 20, statementDay: 5, openingBalance: gbp(-180) });
+  // A car loan carried as metadata only (no payment history), so the forecast schedules its committed
+  // minimum payment (source KNOWN) and the debt engine projects its payoff — engine paths a card-only
+  // demo never exercised. See the KNOWN-loan branch in core/forecast.ts and debtSummary in core/debt.ts.
+  await addAcc('carloan', { name: 'Car Loan', institution: 'Black Horse', accountType: 'LOAN', accessType: 'UNKNOWN', interestRateBps: 690, minimumPayment: gbp(245), paymentDueDay: 5, openingBalance: gbp(-7800) });
 
   // 6. Transactions
   const txns: TxInsert[] = [];
@@ -75,17 +81,31 @@ async function main() {
     const accountId = accId.get(accKey)!;
     const description = desc ?? merchant;
     txns.push({
-      userId, accountId, date, amount: amountPence, currency: 'GBP', merchant, description,
+      id: randomUUID(), userId, accountId, date, amount: amountPence, currency: 'GBP', merchant, description,
       categoryId: catId.get(cat) ?? null, transactionType: type, status: 'POSTED',
       confidence: 100, source: 'SEED', dedupeKey: dedupe(accountId, date, amountPence, description),
     });
   }
   function transfer(fromKey: string, toKey: string, amountPence: number, date: string, type: s.TransactionRow['transactionType'], cat: string, desc: string) {
-    const group = randomUUID();
     const from = accId.get(fromKey)!;
     const to = accId.get(toKey)!;
-    txns.push({ userId, accountId: from, date, amount: -amountPence, currency: 'GBP', merchant: desc, description: desc, categoryId: catId.get(cat)!, transactionType: type, status: 'POSTED', transferGroupId: group, confidence: 100, source: 'SEED', dedupeKey: dedupe(from, date, -amountPence, desc) });
-    txns.push({ userId, accountId: to, date, amount: amountPence, currency: 'GBP', merchant: desc, description: desc, categoryId: catId.get(cat)!, transactionType: type, status: 'POSTED', transferGroupId: group, confidence: 100, source: 'SEED', dedupeKey: dedupe(to, date, amountPence, desc) });
+    const categoryId = catId.get(cat)!;
+    const leg = (accountId: string, amount: number) => ({
+      id: randomUUID(), userId, accountId, date, amount, currency: 'GBP' as const, merchant: desc, description: desc,
+      categoryId, status: 'POSTED' as const, confidence: 100, source: 'SEED' as const, dedupeKey: dedupe(accountId, date, amount, desc),
+    });
+    if (type === 'CARD_PAYMENT') {
+      // Card payments stay explicitly grouped + typed: the detector skips grouped txns, and the
+      // credit-card behaviour signal keys off CARD_PAYMENT.
+      const group = randomUUID();
+      txns.push({ ...leg(from, -amountPence), transactionType: 'CARD_PAYMENT', transferGroupId: group });
+      txns.push({ ...leg(to, amountPence), transactionType: 'CARD_PAYMENT', transferGroupId: group });
+    } else {
+      // Genuine account-to-account transfer: emit UNTAGGED (type UNKNOWN, no group) so detectTransfers
+      // has to pair the two legs on the demo, exactly as it does for imported bank data (spec §7).
+      txns.push({ ...leg(from, -amountPence), transactionType: 'UNKNOWN' });
+      txns.push({ ...leg(to, amountPence), transactionType: 'UNKNOWN' });
+    }
   }
 
   const SUBS: [string, number, number][] = [ // merchant, day, £
@@ -171,6 +191,36 @@ async function main() {
     if (!payFull) T('amex', 1, gbp(-randInt(rng, 8, 22)), 'INTEREST', 'Interest Charged', 'Amex', 'Interest charged');
   }
 
+  // Classify internal transfers with the SAME detector the CSV importer uses (spec §7): genuine
+  // account-to-account legs were left untagged (type UNKNOWN); detectTransfers pairs them by
+  // opposite-sign/near-equal/cross-account/within-a-few-days, so the demo exercises this path end to
+  // end instead of pre-labelling it. Fails loudly if any leg is left unpaired (would become phantom spend).
+  const byId = new Map(txns.map((t) => [t.id as string, t]));
+  let transferPairs = 0;
+  for (const [a, b] of detectTransfers(txns.filter((t) => t.transactionType === 'UNKNOWN') as unknown as Transaction[])) {
+    const group = randomUUID();
+    for (const id of [a, b]) {
+      const t = byId.get(id)!;
+      t.transferGroupId = group;
+      t.transactionType = 'TRANSFER';
+    }
+    transferPairs++;
+  }
+  const orphanLegs = txns.filter((t) => t.transactionType === 'UNKNOWN').length;
+  if (orphanLegs > 0) throw new Error(`Transfer detection left ${orphanLegs} legs unpaired (expected 0) — adjust seed transfer amounts/dates.`);
+
+  // A planned future expense the user has entered: PENDING + future-dated + source MANUAL. Exercises
+  // the USER_ENTERED forecast source and the "planned" badge, neither of which an all-POSTED demo hit.
+  // Dated ~12 days out from the real seed date so it lands inside the 30-day forecast horizon.
+  const plannedDate = new Date(Date.now() + 12 * 86_400_000).toISOString().slice(0, 10);
+  const mainId = accId.get('main')!;
+  txns.push({
+    id: randomUUID(), userId, accountId: mainId, date: plannedDate, amount: gbp(-1250), currency: 'GBP',
+    merchant: 'DFS', description: 'Planned sofa purchase', categoryId: catId.get('Shopping') ?? null,
+    transactionType: 'EXPENSE', status: 'PENDING', confidence: 100, source: 'MANUAL',
+    dedupeKey: dedupe(mainId, plannedDate, gbp(-1250), 'Planned sofa purchase'),
+  });
+
   // Batch insert transactions
   for (let i = 0; i < txns.length; i += 200) {
     await db.insert(s.transactions).values(txns.slice(i, i + 200));
@@ -189,13 +239,15 @@ async function main() {
   ]);
 
   console.log(`Seeded demo user: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
-  console.log(`  ${txns.length} transactions across ${accId.size} accounts, ${MONTHS.length} months.`);
+  console.log(`  ${txns.length} transactions across ${accId.size} accounts, ${MONTHS.length} months; ${transferPairs} transfers detected.`);
 
-  // Self-check: derived balances + confirm no transaction is dated after asOf ("today").
+  // Self-check: derived balances + confirm no SETTLED (POSTED) transaction is dated after asOf
+  // ("today") — a future POSTED row would inflate balances. Future PENDING rows are planned items.
   const check = await loadSnapshot(userId);
   const bals = new Map(computeBalances(check).map((b) => [b.accountId, b.balance]));
-  const latest = check.transactions.reduce((mx, t) => (t.date > mx ? t.date : mx), '');
-  console.log(`  asOf ${check.asOf}; latest txn ${latest}${latest > check.asOf ? '  <-- FUTURE!' : ' (ok)'}`);
+  const latestPosted = check.transactions.filter((t) => t.status === 'POSTED').reduce((mx, t) => (t.date > mx ? t.date : mx), '');
+  const pending = check.transactions.filter((t) => t.status === 'PENDING').length;
+  console.log(`  asOf ${check.asOf}; latest POSTED txn ${latestPosted}${latestPosted > check.asOf ? '  <-- FUTURE!' : ' (ok)'}; ${pending} planned (pending) item(s)`);
   for (const a of check.accounts) {
     console.log(`    ${a.name.padEnd(24)} ${((bals.get(a.id) ?? 0) / 100).toFixed(2).padStart(11)}`);
   }

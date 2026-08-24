@@ -1,7 +1,8 @@
 import type { FinancialSnapshot, Transaction, ConfidenceTier, AccountType } from './types';
 import { isInternalTransfer } from './ledger';
-import { completeMonthsBefore, monthKey } from './dates';
-import { mean, median, stdev, clamp0 } from './stats';
+import { completeMonthsBefore, monthKey, monthLabel } from './dates';
+import { mean, median, stdev, clamp0, linearTrend } from './stats';
+import { seasonality } from './seasonality';
 
 const WINDOW = 12;
 
@@ -24,7 +25,8 @@ export interface CategoryStat {
   expectedMonthlySpend: number; // recent-weighted baseline
   likelyRange: [number, number];
   highSpendThreshold: number;
-  seasonalityStrength: number; // 0–1: coefficient of variation of monthly spend (higher = lumpier/seasonal)
+  seasonalityStrength: number; // 0–1 seasonality: a contiguous elevated season scores high; noise/one-offs ~0
+  peakMonth: string | null; // calendar month the category peaks in, when a season is detected
   activeMonths: number;
   confidence: ConfidenceTier;
 }
@@ -52,25 +54,26 @@ function spendByCategoryMonth(snapshot: FinancialSnapshot, months: string[]): Ma
   return idx;
 }
 
-export function computeCategoryStat(categoryId: string, totals: number[]): CategoryStat {
+export function computeCategoryStat(categoryId: string, totals: number[], months?: string[]): CategoryStat {
   const monthlyAverage = Math.round(mean(totals));
   const md = Math.round(median(totals));
   const sd = Math.round(stdev(totals));
   const recent = totals.slice(-3);
-  const earlier = totals.slice(0, Math.max(0, totals.length - 3));
   const recentAverage = Math.round(mean(recent));
-  const earlierAverage = mean(earlier);
 
+  // Real linear trend: least-squares slope over the whole series, gated by significance (t-stat, so
+  // noise or a lone spike stays STABLE) and materiality (the fitted line moves >15% of the mean across
+  // the window). Replaces the old recent-vs-earlier bucket ratio, which ignored the series shape.
+  const tr = linearTrend(totals);
+  const relChange = monthlyAverage > 0 ? (tr.slope * (totals.length - 1)) / monthlyAverage : 0;
+  const significant = Math.abs(tr.t) >= 2;
   let trend: CategoryStat['trend'] = 'STABLE';
-  if (earlierAverage === 0 && recentAverage > 0) trend = 'RISING';
-  else if (earlierAverage > 0) {
-    const ratio = recentAverage / earlierAverage;
-    if (ratio > 1.12) trend = 'RISING';
-    else if (ratio < 0.88) trend = 'FALLING';
-  }
+  if (significant && relChange > 0.15) trend = 'RISING';
+  else if (significant && relChange < -0.15) trend = 'FALLING';
 
   const activeMonths = totals.filter((x) => x > 0).length;
   const expectedMonthlySpend = Math.round(0.5 * monthlyAverage + 0.5 * recentAverage);
+  const seas = seasonality(totals);
   return {
     categoryId,
     monthlyTotals: totals,
@@ -84,7 +87,8 @@ export function computeCategoryStat(categoryId: string, totals: number[]): Categ
     expectedMonthlySpend,
     likelyRange: [Math.round(clamp0(monthlyAverage - sd)), Math.round(monthlyAverage + sd)],
     highSpendThreshold: Math.round(monthlyAverage + 1.5 * sd),
-    seasonalityStrength: monthlyAverage > 0 ? Math.min(1, Math.round((sd / monthlyAverage) * 100) / 100) : 0,
+    seasonalityStrength: seas.strength,
+    peakMonth: months && seas.peakIndex >= 0 ? monthLabel(months[seas.peakIndex]) : null,
     activeMonths,
     confidence: confidenceFromActiveMonths(activeMonths),
   };
@@ -97,7 +101,7 @@ export function analyseCategories(snapshot: FinancialSnapshot): CategoryStat[] {
   const stats: CategoryStat[] = [];
   for (const [categoryId, monthMap] of byCat) {
     const totals = months.map((mk) => monthMap.get(mk) ?? 0);
-    stats.push(computeCategoryStat(categoryId, totals));
+    stats.push(computeCategoryStat(categoryId, totals, months));
   }
   return stats.sort((a, b) => b.monthlyAverage - a.monthlyAverage);
 }
@@ -106,7 +110,7 @@ export function categoryStat(snapshot: FinancialSnapshot, categoryId: string): C
   const months = completeMonthsBefore(snapshot.asOf, WINDOW);
   const byCat = spendByCategoryMonth(snapshot, months);
   const monthMap = byCat.get(categoryId) ?? new Map();
-  return computeCategoryStat(categoryId, months.map((mk) => monthMap.get(mk) ?? 0));
+  return computeCategoryStat(categoryId, months.map((mk) => monthMap.get(mk) ?? 0), months);
 }
 
 // ---- Savings behaviour (spec §11) -----------------------------------------
