@@ -87,3 +87,58 @@ body {
 
 /* Tabular figures keep money columns aligned. */
 .tnum { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------------
+   Craft pass (Apple "fluid interfaces"): response, materials, motion, type.
+   Motion is transform/opacity only (compositor-friendly) and degrades under
+   reduced-motion. Springs would be the upgrade path for any drag-driven surface.
+   --------------------------------------------------------------------------- */
+
+/* Type: optical sizing + size-aware tracking/leading. Tighten large headings; body stays near 0.
+   (Utility classes like `tracking-tight` still win where a heading sets one explicitly.) */
+html { font-optical-sizing: auto; }
+h1, h2 { letter-spacing: -0.021em; }
+h1 { line-height: 1.1; }
+
+/* Ease the light↔dark switch so it doesn't hard-cut. Only fires on an actual theme change — the
+   pre-paint script in layout.tsx sets the theme before first paint, so there's no load-time animation. */
+body { transition: background-color 0.4s ease, color 0.4s ease; }
+
+/* Response (§1): instant, physical press feedback — controls dip toward the finger and settle back.
+   Applies to every <button> and any element opting in with `.press`. */
+button, .press {
+  transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+button:not(:disabled):active, .press:active { transform: scale(0.97); }
+
+/* Materialize, anchored to the trigger (§7/§12): overlays scale+fade from their origin, not the centre. */
+@keyframes pop-in { from { opacity: 0; transform: scale(0.96) translateY(-2px); } to { opacity: 1; transform: none; } }
+.pop-in { animation: pop-in 0.16s cubic-bezier(0.2, 0, 0, 1); }
+
+/* Drawer: slide in from the edge with a fading scrim (§7/§12). It closes instantly — a fully symmetric,
+   interruptible slide-out wants a drag-driven spring, which is the motion-library upgrade path. */
+@keyframes drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.drawer-in { animation: drawer-in 0.24s cubic-bezier(0.2, 0, 0, 1); }
+.scrim-in { animation: fade-in 0.24s ease; }
+
+/* Accessibility (§14): honour the three independent signals. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:not(:disabled):active, .press:active { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  header { background: var(--surface) !important; backdrop-filter: none !important; }
+}
+@media (prefers-contrast: more) {
+  :root { --border: #8f8b58; --muted: #3f4457; }
+  :root[data-theme="dark"] { --border: #5b6089; --muted: #c4c7d7; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --border: #5b6089; --muted: #c4c7d7; }
+  }
+}

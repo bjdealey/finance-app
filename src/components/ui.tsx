@@ -6,7 +6,7 @@ export function cn(...xs: (string | false | null | undefined)[]): string {
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn('rounded-xl border border-border bg-surface p-5', className)}>{children}</div>;
+  return <div className={cn('rounded-xl border border-border bg-surface p-5 transition-colors duration-300', className)}>{children}</div>;
 }
 
 export function Money({

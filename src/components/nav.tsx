@@ -31,10 +31,20 @@ export function AppHeader({ userName }: { userName: string }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
   const moreActive = MORE.some((i) => isActive(i.href));
+
+  // Scroll-edge chrome: the header floats flush at the top and grows a hairline + soft shadow only
+  // once content slides under it (§12 — scroll edge, not a permanent divider).
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Close the desktop "More" popover on outside click / Escape. (A fixed backdrop can't be used
   // here — the header's backdrop-blur makes it a containing block that would clip a fixed overlay.)
@@ -54,7 +64,12 @@ export function AppHeader({ userName }: { userName: string }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur">
+      <header
+        className={cn(
+          'sticky top-0 z-40 backdrop-blur transition-[background-color,border-color,box-shadow] duration-300',
+          scrolled ? 'border-b border-border bg-surface/85 shadow-sm shadow-black/5' : 'border-b border-transparent bg-surface/60',
+        )}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-6">
           <Link href="/dashboard" className="flex shrink-0 items-center gap-2 pr-1" onClick={() => setDrawerOpen(false)}>
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-[13px] font-bold text-primary-fg">F</span>
@@ -83,7 +98,7 @@ export function AppHeader({ userName }: { userName: string }) {
                 </svg>
               </button>
               {moreOpen && (
-                <div role="menu" className="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-lg shadow-black/5">
+                <div role="menu" className="pop-in absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-xl border border-border bg-surface p-1.5 shadow-lg shadow-black/5">
                   {MORE.map((i) => (
                     <Link
                       key={i.href}
@@ -128,8 +143,12 @@ export function AppHeader({ userName }: { userName: string }) {
       {/* Drawer — rendered outside the blurred header so `fixed` fills the viewport. */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-label="Close menu" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute right-0 top-0 flex h-full w-72 max-w-[82vw] flex-col border-l border-border bg-surface shadow-xl">
+          <button
+            className="scrim-in absolute inset-0 bg-black/40 backdrop-blur-sm"
+            aria-label="Close menu"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className="drawer-in absolute right-0 top-0 flex h-full w-72 max-w-[82vw] flex-col border-l border-border bg-surface shadow-xl [will-change:transform]">
             <div className="flex h-16 items-center justify-between px-5">
               <span className="text-sm font-semibold tracking-tight">Menu</span>
               <button
