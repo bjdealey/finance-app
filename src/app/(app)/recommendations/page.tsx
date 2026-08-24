@@ -4,6 +4,7 @@ import { getDecisions } from '@/server/services/recommendations';
 import { Card, Money, Badge, PageHeader } from '@/components/ui';
 import { RecommendationCard } from '@/components/recommendation-card';
 import { RecommendationActions } from '@/components/recommendation-actions';
+import { EXECUTION_DISABLED_NOTICE } from '@/core/execution';
 import { formatDate } from '@/lib/format';
 
 export default async function RecommendationsPage() {
@@ -69,8 +70,7 @@ export default async function RecommendationsPage() {
       )}
 
       <p className="mt-8 text-xs text-muted">
-        These are financial planning suggestions and educational information, not regulated financial advice. Approving records
-        your intent — it never moves money (execution is a disabled boundary in this MVP).
+        These are financial planning suggestions and educational information, not regulated financial advice. {EXECUTION_DISABLED_NOTICE}
       </p>
     </div>
   );
