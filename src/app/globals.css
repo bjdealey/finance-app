@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
+/* Calm, trustworthy palette. Semantic vars flip with the colour scheme; @theme maps them to
+   Tailwind utilities (bg-bg, text-fg, border-border, text-pos, …). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --fg: #1a1d23;
+  --muted: #667085;
+  --border: #e4e7ec;
+  --primary: #0f766e;
+  --primary-fg: #ffffff;
+  --pos: #15803d;
+  --neg: #b91c1c;
+  --warn: #b45309;
+  --accent: #3730a3;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0d0f12;
+    --surface: #161a1f;
+    --surface-2: #1c2127;
+    --fg: #e6e8eb;
+    --muted: #9aa2ad;
+    --border: #272d35;
+    --primary: #2dd4bf;
+    --primary-fg: #06201d;
+    --pos: #4ade80;
+    --neg: #f87171;
+    --warn: #fbbf24;
+    --accent: #a5b4fc;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+  --color-accent: var(--accent);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures keep money columns aligned. */
+.tnum { font-variant-numeric: tabular-nums; }
