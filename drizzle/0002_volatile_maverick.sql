@@ -1,0 +1,1 @@
+ALTER TABLE "transactions" DROP COLUMN "recurring_series_id";

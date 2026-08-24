@@ -161,7 +161,6 @@ export const transactions = pgTable('transactions', {
   transactionType: transactionType('transaction_type').notNull().default('UNKNOWN'),
   status: txnStatus('status').notNull().default('POSTED'),
   transferGroupId: uuid('transfer_group_id'), // links the two legs of an internal transfer
-  recurringSeriesId: text('recurring_series_id'),
   confidence: integer('confidence').notNull().default(0), // 0-100 categorisation confidence
   source: txnSource('source').notNull().default('MANUAL'),
   importBatchId: uuid('import_batch_id').references(() => importBatches.id),
