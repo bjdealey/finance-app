@@ -1,37 +1,59 @@
 @import "tailwindcss";
 
-/* Calm, trustworthy palette. Semantic vars flip with the colour scheme; @theme maps them to
-   Tailwind utilities (bg-bg, text-fg, border-border, text-pos, …). */
+/* Warm "sunset + ink" palette (Coolors): pale-yellow, gold, light-orange, orange-red, deep navy.
+   Semantic vars flip with the colour scheme; @theme maps them to Tailwind utilities
+   (bg-bg, text-fg, border-border, text-pos, …). Raw palette hues are lightened/darkened per role so
+   text stays legible; gold = positive/value, orange = caution, orange-red = action & loss.
+
+   Theme resolution: :root is light. Dark applies when the OS asks for it (unless the user forced
+   light), or when the user explicitly picks dark — the [data-theme] choice wins over the OS in both
+   directions. The Settings toggle sets/removes data-theme on <html>; layout.tsx applies it pre-paint. */
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --fg: #1a1d23;
-  --muted: #667085;
-  --border: #e4e7ec;
-  --primary: #0f766e;
+  --bg: #f4f7ce;        /* pale-yellow canvas (P1, lightened) */
+  --surface: #ffffff;   /* cards pop white on the yellow page */
+  --surface-2: #ecf1af; /* pale-yellow tint — tracks, hover, default chips (P1) */
+  --fg: #03051e;        /* deep-navy ink (P5) */
+  --muted: #575c74;
+  --border: #d9d69c;    /* soft khaki-gold hairline */
+  --primary: #fc3d12;   /* orange-red — brand & primary action (P4) */
   --primary-fg: #ffffff;
-  --pos: #15803d;
-  --neg: #b91c1c;
-  --warn: #b45309;
-  --accent: #3730a3;
+  --pos: #9a7407;       /* deep gold — gains / on-track (P2 hue, darkened for contrast) */
+  --neg: #d62f0e;       /* deep orange-red — losses (P4, darkened) */
+  --warn: #bb6910;      /* dark orange — caution (P3 hue, darkened) */
+  --accent: #bf860a;    /* amber — secondary accent (P2 hue) */
 }
 
+/* Dark palette — kept in sync between the OS-driven and the explicit-choice selectors below. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d0f12;
-    --surface: #161a1f;
-    --surface-2: #1c2127;
-    --fg: #e6e8eb;
-    --muted: #9aa2ad;
-    --border: #272d35;
-    --primary: #2dd4bf;
-    --primary-fg: #06201d;
-    --pos: #4ade80;
-    --neg: #f87171;
-    --warn: #fbbf24;
-    --accent: #a5b4fc;
+  :root:not([data-theme="light"]) {
+    --bg: #03051e;        /* deep-navy canvas (P5) */
+    --surface: #0b0e2b;
+    --surface-2: #141834;
+    --fg: #ecf1c4;        /* soft pale-yellow ink (P1) */
+    --muted: #9b9fb4;
+    --border: #23274c;
+    --primary: #fc3d12;   /* orange-red pops on navy (P4) */
+    --primary-fg: #ffffff;
+    --pos: #e7d07b;       /* gold — gains (P2) */
+    --neg: #ff6046;       /* lightened orange-red for text on navy */
+    --warn: #fba35c;      /* light orange — caution (P3) */
+    --accent: #f2c078;    /* light amber — secondary accent */
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #03051e;
+  --surface: #0b0e2b;
+  --surface-2: #141834;
+  --fg: #ecf1c4;
+  --muted: #9b9fb4;
+  --border: #23274c;
+  --primary: #fc3d12;
+  --primary-fg: #ffffff;
+  --pos: #e7d07b;
+  --neg: #ff6046;
+  --warn: #fba35c;
+  --accent: #f2c078;
 }
 
 @theme inline {
@@ -56,6 +78,11 @@ body {
   color: var(--fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-fg);
 }
 
 /* Tabular figures keep money columns aligned. */
