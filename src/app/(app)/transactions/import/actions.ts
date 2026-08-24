@@ -37,6 +37,7 @@ export async function previewImport(_prev: PreviewData | null, formData: FormDat
 export interface ImportActionResult {
   imported?: number;
   duplicates?: number;
+  possibleDuplicates?: number;
   errors?: number;
   transfersDetected?: number;
   error?: string;
@@ -77,5 +78,5 @@ export async function runImport(_prev: ImportActionResult | null, formData: Form
   const result = await importTransactions(user.id, accountId, rows, file.name);
   revalidatePath('/transactions');
   revalidatePath('/dashboard');
-  return { imported: result.imported, duplicates: result.duplicates, transfersDetected: result.transfersDetected, errors, done: true };
+  return { imported: result.imported, duplicates: result.duplicates, possibleDuplicates: result.possibleDuplicates, transfersDetected: result.transfersDetected, errors, done: true };
 }

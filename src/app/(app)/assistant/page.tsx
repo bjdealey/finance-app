@@ -9,7 +9,7 @@ export default async function AssistantPage() {
 
   return (
     <div>
-      <PageHeader title="Assistant" subtitle="Ask about your finances. Every answer is grounded in your real data — the assistant reads it through tools and never invents figures." />
+      <PageHeader title="Assistant" subtitle="Ask about your finances. The assistant reads your figures through deterministic tools; any number it can't verify against them is removed before you see it." />
       {available ? (
         <AssistantChat />
       ) : (

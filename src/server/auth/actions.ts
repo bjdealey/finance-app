@@ -2,13 +2,14 @@
 
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import { users } from '@/server/db/schema';
 import { seedUserDefaults } from '@/server/db/defaults';
 import { hashPassword, verifyPassword } from './password';
 import { createSession, destroySession } from './session';
-import { hitRateLimit, clearRateLimit } from './rate-limit';
+import { hitRateLimit, clearRateLimit, clientIpFrom } from './rate-limit';
 
 // A lazily-computed argon2 hash to verify against when the email is unknown, so a missing account
 // takes the same time to reject as a real one (closes a user-enumeration timing oracle).
@@ -34,6 +35,13 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   const parsed = registerSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid details' };
   const { name, email, password } = parsed.data;
+
+  // Throttle by client IP so the "already exists" reply can't be used to enumerate accounts at scale.
+  // (Full fix is a "check your email" flow, which needs email sending this MVP doesn't have.)
+  const h = await headers();
+  if (hitRateLimit(`register:${clientIpFrom((n) => h.get(n))}`)) {
+    return { error: 'Too many attempts. Please wait a few minutes and try again.' };
+  }
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (existing.length) return { error: 'An account with that email already exists.' };

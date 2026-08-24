@@ -144,7 +144,10 @@ function ResultView({ result }: { result: ImportActionResult }) {
       <h2 className="text-lg font-semibold">Import complete</h2>
       <ul className="mt-3 space-y-1 text-sm">
         <li>Imported: <strong>{result.imported ?? 0}</strong></li>
-        <li>Skipped duplicates: <strong>{result.duplicates ?? 0}</strong></li>
+        <li>Skipped (already in your data): <strong>{result.duplicates ?? 0}</strong></li>
+        {(result.possibleDuplicates ?? 0) > 0 && (
+          <li>Possible duplicates within the file (imported — please review): <strong>{result.possibleDuplicates}</strong></li>
+        )}
         <li>Rows with errors: <strong>{result.errors ?? 0}</strong></li>
         <li>Internal transfers detected &amp; excluded from spending: <strong>{result.transfersDetected ?? 0}</strong></li>
       </ul>

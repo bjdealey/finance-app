@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAnalysis } from '@/server/services/analysis';
 import { TOOLS, runTool } from './tools';
-import { ungroundedFigures } from './validate';
+import { redactUngrounded } from './validate';
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
 
@@ -51,12 +51,12 @@ export async function askAssistant(userId: string, history: ChatMessage[]): Prom
         .join('\n')
         .trim();
       if (!text) return { text: 'I could not produce an answer.', toolsUsed };
-      // Guardrail: never let a money figure through that didn't come from a tool (spec §32).
-      const ungrounded = ungroundedFigures(text, toolOutputs);
-      const caution = ungrounded.length
-        ? `\n\n---\n⚠️ I couldn't verify ${ungrounded.join(', ')} against your data — please double-check before relying on it.`
-        : '';
-      return { text: text + caution, toolsUsed };
+      // Guardrail (spec §32): fail closed — redact any £/rate figure that didn't come from a tool
+      // rather than showing an unverified number with a caveat.
+      const { text: safe, removed } = redactUngrounded(text, toolOutputs);
+      if (!removed.length) return { text: safe, toolsUsed };
+      const note = `\n\n---\n⚠️ I removed ${removed.length} figure${removed.length > 1 ? 's' : ''} I couldn't verify against your data (shown as [unverified] above). Ask me to pull the exact number and I'll read it from the tools.`;
+      return { text: safe + note, toolsUsed };
     }
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];

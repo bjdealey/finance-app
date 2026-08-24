@@ -1,9 +1,10 @@
-// Fixed-window login throttle. Records one attempt per call and reports whether the key has
-// exceeded MAX within WINDOW_MS. A successful login should call clearRateLimit() to reset.
+// Fixed-window auth throttle. Records one attempt per call and reports whether the key has exceeded
+// MAX within WINDOW_MS. Login keys by email (call clearRateLimit() on success); registration keys by
+// `register:<ip>` to cap account-enumeration probes from one source (enumeration rotates the email,
+// so an email key wouldn't fire — the source is the limit).
 //
-// ponytail: per-process, in-memory, keyed by email — enough to stop password brute-forcing on a
-// single instance. For production add IP-based limiting + a CAPTCHA, and move the store to Redis/DB
-// if you run more than one instance (this Map is not shared across processes).
+// ponytail: per-process, in-memory. For production add a CAPTCHA and move the store to Redis/DB if you
+// run more than one instance (this Map is not shared across processes).
 
 const WINDOW_MS = 15 * 60_000; // 15 minutes
 const MAX_ATTEMPTS = 8;
@@ -27,3 +28,13 @@ export function clearRateLimit(key: string): void {
 }
 
 export const RATE_LIMIT_MAX = MAX_ATTEMPTS;
+
+// Client IP for throttle keys, from proxy headers (first x-forwarded-for hop, then x-real-ip).
+// ponytail: x-forwarded-for is client-settable unless a trusted proxy overwrites it, so a determined
+// attacker can spoof it to rotate the key. Behind a real proxy in production, trust only the
+// proxy-set header. Still stops naive enumeration and is far better than no throttle.
+export function clientIpFrom(get: (name: string) => string | null): string {
+  const first = get('x-forwarded-for')?.split(',')[0]?.trim();
+  if (first) return first;
+  return get('x-real-ip')?.trim() || 'local';
+}

@@ -14,6 +14,9 @@ const RISK_LABEL: Record<string, string> = {
   EXCEEDS_AVAILABLE_CASH: 'Exceeds available cash',
 };
 
+// null months = no positive contribution, so the goal isn't reached on the current pace.
+const fmtMonths = (m: number | null) => (m == null ? 'not on this pace' : `${m} mo`);
+
 type Fields = { income: number; spend: number; savings: number; oneOff: number };
 const ZERO: Fields = { income: 0, spend: 0, savings: 0, oneOff: 0 };
 
@@ -116,7 +119,7 @@ export function ScenarioLab({ initial }: { initial: ScenarioResult }) {
               <li key={g.goalId} className="flex items-center justify-between">
                 <span>{g.name}</span>
                 <span className="text-muted">
-                  {g.baselineMonths} mo → <span className={g.scenarioMonths != null && g.baselineMonths != null && g.scenarioMonths < g.baselineMonths ? 'text-pos' : ''}>{g.scenarioMonths} mo</span> to reach
+                  {fmtMonths(g.baselineMonths)} → <span className={g.scenarioMonths != null && g.baselineMonths != null && g.scenarioMonths < g.baselineMonths ? 'text-pos' : ''}>{fmtMonths(g.scenarioMonths)}</span> to reach
                 </span>
               </li>
             ))}

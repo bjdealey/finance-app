@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { parseMoneyToPence } from './money';
 
 // Pure CSV mapping/normalisation. The service layer does the actual file read (csv-parse),
@@ -85,4 +86,42 @@ export function normalizeRow(record: Record<string, string>, map: ColumnMap): Ro
 
   const balance = map.balance ? parseMoneyToPence(record[map.balance]) : null;
   return { ok: true, row: { date, description, amount, balance } };
+}
+
+// Advisory identity hash. NOT a unique constraint: two identical small purchases on the same day are
+// legitimate. Used to skip re-imports and to flag (never drop) within-file repeats.
+export function dedupeKey(accountId: string, date: string, amount: number, description: string): string {
+  return createHash('sha256').update(`${accountId}|${date}|${amount}|${description}`).digest('hex');
+}
+
+export interface PlannedRow {
+  row: ParsedRow;
+  key: string;
+  possibleDuplicate: boolean; // identical to an earlier row in THIS file — imported, but worth a look
+}
+
+// Partition parsed rows for import. A row whose key already exists in the account is dropped (a
+// genuine statement re-import). A row identical to an earlier row in the SAME file is KEPT but
+// flagged — dropping it would lose a real transaction and understate spending (schema §dedupe_key).
+export function planDedupe(
+  accountId: string,
+  rows: ParsedRow[],
+  existingKeys: Set<string>,
+): { toInsert: PlannedRow[]; skipped: number; possibleDuplicates: number } {
+  const seen = new Set<string>();
+  const toInsert: PlannedRow[] = [];
+  let skipped = 0;
+  let possibleDuplicates = 0;
+  for (const row of rows) {
+    const key = dedupeKey(accountId, row.date, row.amount, row.description);
+    if (existingKeys.has(key)) {
+      skipped++; // already in the ledger from a prior import
+      continue;
+    }
+    const possibleDuplicate = seen.has(key);
+    if (possibleDuplicate) possibleDuplicates++;
+    else seen.add(key);
+    toInsert.push({ row, key, possibleDuplicate });
+  }
+  return { toInsert, skipped, possibleDuplicates };
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { runScenario } from './scenario';
-import { acc, txn, snap, cat } from './testkit';
+import { acc, txn, snap, cat, goal } from './testkit';
 
 const MONTHS = ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
 
@@ -50,5 +50,35 @@ describe('runScenario', () => {
     const a = runScenario(s, [{ kind: 'INCOME', monthly: 10_000 }]).baseline;
     const b = runScenario(s, [{ kind: 'SPEND', monthly: 99_000 }]).baseline;
     expect(a).toEqual(b);
+  });
+
+  // Regression: a goal with no recent contributions must report null ("not on this pace"), not
+  // remaining-in-pence. The old Math.max(1, recentMonthly) floored the divisor to 1p, so a £2,800
+  // shortfall came out as 280,000 "months". A savings delta applied to the top goal must still give
+  // a finite figure, and an already-funded goal keeps its normal projection.
+  it('reports null months for an unfunded goal, finite once a savings delta funds it', () => {
+    const accounts = [
+      acc({ id: 'main', accountType: 'CURRENT', accessType: 'INSTANT', openingBalance: 1_000_000 }),
+      acc({ id: 'easy', accountType: 'SAVINGS', accessType: 'INSTANT', openingBalance: 500_000 }),
+      acc({ id: 'pot', accountType: 'SAVINGS', accessType: 'INSTANT', openingBalance: 120_000 }),
+    ];
+    const txns = MONTHS.flatMap((mk) => [
+      txn({ accountId: 'main', amount: 390_000, date: `${mk}-25`, transactionType: 'INCOME' }),
+      txn({ accountId: 'main', amount: -50_000, date: `${mk}-26`, transactionType: 'TRANSFER', transferGroupId: `g${mk}` }),
+      txn({ accountId: 'easy', amount: 50_000, date: `${mk}-26`, transactionType: 'TRANSFER', transferGroupId: `g${mk}` }),
+    ]);
+    const goals = [
+      goal({ id: 'pot-goal', name: 'Holiday', linkedAccountId: 'pot', targetAmount: 400_000, targetDate: '2027-08-01', priority: 1 }),
+      goal({ id: 'easy-goal', name: 'Buffer', linkedAccountId: 'easy', targetAmount: 2_000_000, targetDate: '2027-08-01', priority: 100 }),
+    ];
+    const s2 = snap({ asOf: '2026-08-10', accounts, transactions: txns, goals });
+
+    const r = runScenario(s2, [{ kind: 'SAVINGS', monthly: 35_000 }]); // +£350/mo → the top-priority goal (pot)
+    const pot = r.goalImpact.find((g) => g.goalId === 'pot-goal')!;
+    const easy = r.goalImpact.find((g) => g.goalId === 'easy-goal')!;
+
+    expect(pot.baselineMonths).toBeNull(); // no recent contributions → not on this pace
+    expect(pot.scenarioMonths).toBe(8); // ceil(280000 / 35000)
+    expect(easy.baselineMonths).toBe(18); // funded path still finite: ceil(900000 / 50000)
   });
 });

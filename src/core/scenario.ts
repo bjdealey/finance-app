@@ -79,17 +79,21 @@ export function runScenario(snapshot: FinancialSnapshot, deltas: ScenarioDelta[]
   const topGoalId = goals
     .filter((g) => g.goal.targetDate && g.onTrack !== true)
     .sort((a, b) => a.goal.priority - b.goal.priority)[0]?.goal.id;
+  // Months to clear `remaining` (pence) at a monthly contribution (pence). With no positive
+  // contribution the goal isn't being funded, so time-to-reach is undefined (null) — NOT
+  // remaining-pence divided by a 1p floor, which reported hundreds of thousands of months.
+  const monthsToReach = (remaining: number, contribution: number): number | null =>
+    contribution > 0 ? Math.ceil(remaining / contribution) : null;
   const goalImpact: GoalImpact[] = goals
     .filter((g) => g.requiredMonthly != null)
     .map((g) => {
       const remaining = Math.max(0, g.goal.targetAmount - g.currentAmount);
-      const baseContribution = Math.max(1, g.recentMonthly);
-      const scenContribution = Math.max(1, g.recentMonthly + (g.goal.id === topGoalId ? dSavings : 0));
+      const scenContribution = g.recentMonthly + (g.goal.id === topGoalId ? dSavings : 0);
       return {
         goalId: g.goal.id,
         name: g.goal.name,
-        baselineMonths: Math.ceil(remaining / baseContribution),
-        scenarioMonths: Math.ceil(remaining / scenContribution),
+        baselineMonths: monthsToReach(remaining, g.recentMonthly),
+        scenarioMonths: monthsToReach(remaining, scenContribution),
       };
     });
 
