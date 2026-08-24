@@ -38,7 +38,7 @@ export default async function ForecastPage() {
         })}
       </div>
 
-      <div className="mt-8 flex items-center gap-4 text-xs text-muted">
+      <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
         <span>Sources:</span>
         <Badge tone="accent">recurring</Badge>
         <Badge tone="warn">predicted</Badge>
@@ -51,7 +51,8 @@ export default async function ForecastPage() {
           <span className="text-muted">Current-account balance today</span>
           <Money pence={detail.openingBalance} className="font-medium" />
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[30rem] text-sm">
           <tbody className="divide-y divide-border">
             {detail.items.filter((i) => i.amount !== 0).map((i, idx) => (
               <tr key={idx}>
@@ -63,6 +64,7 @@ export default async function ForecastPage() {
             ))}
           </tbody>
         </table>
+        </div>
         <div className="flex items-center justify-between border-t border-border px-5 py-3">
           <span className="font-medium">Projected balance in 30 days</span>
           <div className="text-right">

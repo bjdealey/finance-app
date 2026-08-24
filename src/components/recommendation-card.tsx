@@ -37,9 +37,9 @@ export function RecommendationCard({ rec, accountName, footer }: { rec: Recommen
   const benefit = benefitText(rec);
   return (
     <Card>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="mb-1 flex items-center gap-2">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
+        <div className="min-w-0">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
             <Badge tone={TYPE_TONE[rec.type]}>{TYPE_LABEL[rec.type]}</Badge>
             <span className="text-xs text-muted">{confidenceLabel(rec.confidence)}</span>
           </div>

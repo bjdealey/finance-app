@@ -22,7 +22,7 @@ export function Money({
 }) {
   const color = colored ? (pence < 0 ? 'text-neg' : pence > 0 ? 'text-pos' : '') : '';
   return (
-    <span className={cn('tnum', color, className)}>
+    <span className={cn('tnum whitespace-nowrap', color, className)}>
       {signed && pence > 0 ? '+' : ''}
       {formatGBP(pence)}
     </span>

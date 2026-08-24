@@ -73,7 +73,8 @@ export function ScenarioLab({ initial }: { initial: ScenarioResult }) {
       </Card>
 
       <Card className={pending ? 'opacity-60 transition' : 'transition'}>
-        <table className="w-full text-sm">
+        <div className="-mx-5 overflow-x-auto px-5">
+        <table className="w-full min-w-[26rem] text-sm">
           <thead className="text-left text-xs text-muted">
             <tr>
               <th className="pb-2 font-medium">Metric</th>
@@ -96,6 +97,7 @@ export function ScenarioLab({ initial }: { initial: ScenarioResult }) {
             </Row>
           </tbody>
         </table>
+        </div>
 
         {result.riskFlags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">

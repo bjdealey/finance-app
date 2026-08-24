@@ -10,7 +10,7 @@ export function RecommendationActions({ rec }: { rec: Recommendation }) {
   const decide = (status: Decision, snoozeDays?: number) => start(() => decideAction(rec, status, snoozeDays));
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         onClick={() => decide('APPROVED')}
         disabled={pending}
@@ -32,7 +32,7 @@ export function RecommendationActions({ rec }: { rec: Recommendation }) {
       >
         Dismiss
       </button>
-      <span className="ml-auto text-xs text-muted">Records intent only — no money moves.</span>
+      <span className="basis-full text-xs text-muted sm:ml-auto sm:basis-auto">Records intent only — no money moves.</span>
     </div>
   );
 }

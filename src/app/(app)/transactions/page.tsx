@@ -81,7 +81,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       </form>
 
       <Card className="p-0">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[34rem] text-sm">
           <tbody className="divide-y divide-border">
             {rows.length === 0 && (
               <tr><td className="p-6 text-center text-muted">No transactions match these filters.</td></tr>
@@ -102,6 +103,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
             })}
           </tbody>
         </table>
+        </div>
       </Card>
 
       {totalPages > 1 && (

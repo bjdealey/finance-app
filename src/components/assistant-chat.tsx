@@ -55,7 +55,7 @@ export function AssistantChat() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-            <div className={cn('max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm', m.role === 'user' ? 'bg-primary text-primary-fg' : 'bg-surface-2')}>
+            <div className={cn('max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm sm:max-w-[80%]', m.role === 'user' ? 'bg-primary text-primary-fg' : 'bg-surface-2')}>
               {m.content}
             </div>
           </div>
