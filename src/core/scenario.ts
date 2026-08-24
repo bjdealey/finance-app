@@ -1,6 +1,8 @@
 import type { FinancialSnapshot } from './types';
 import { computeFinancialState } from './state';
 import { goalStatuses } from './goals';
+import { forecast } from './forecast';
+import { addMonthsISO, addDaysISO } from './dates';
 
 // A what-if is a set of deltas over the current position. It NEVER mutates the snapshot — it derives
 // scenario metrics analytically from the baseline financial state (spec §21).
@@ -27,6 +29,15 @@ export interface GoalImpact {
   scenarioMonths: number | null;
 }
 
+// Spec §21 cashflow_impact: derived from a real forecast re-run, not analytic arithmetic.
+export interface CashflowImpact {
+  horizonDays: number; // 365
+  baselineProjectedBalance: number; // the actual 12-month forecast on today's snapshot
+  scenarioProjectedBalance: number; // that forecast plus the scenario's marginal flows
+  scenarioTrough: number; // lowest running current-account balance along the scenario path
+  scenarioGoesNegative: boolean; // the path dips below zero within the horizon
+}
+
 export interface ScenarioResult {
   baseline: ScenarioMetrics;
   scenario: ScenarioMetrics;
@@ -38,6 +49,7 @@ export interface ScenarioResult {
     monthlySavings: number;
   };
   goalImpact: GoalImpact[];
+  cashflowImpact: CashflowImpact;
   riskFlags: string[];
 }
 
@@ -97,10 +109,35 @@ export function runScenario(snapshot: FinancialSnapshot, deltas: ScenarioDelta[]
       };
     });
 
+  // Cash-flow impact (spec §21): re-run the real 12-month forecast for the baseline path, then layer
+  // the scenario's marginal flows on top (monthly net delta + the one-off) and re-evaluate where the
+  // balance lands and its lowest point. Anchored on the actual forecast engine, so it reflects current
+  // balances, recurring bills, predicted spend and scheduled payments — not a 12×(income−spend) guess.
+  const baseFc = forecast(snapshot, 365);
+  const netMonthly = dIncome - dSpend - dSavings; // per-month effect on current-account cash
+  const deltaItems: { date: string; amount: number }[] = [];
+  if (netMonthly !== 0) for (let k = 1; k <= 12; k++) deltaItems.push({ date: addMonthsISO(snapshot.asOf, k), amount: netMonthly });
+  if (oneOff !== 0) deltaItems.push({ date: addDaysISO(snapshot.asOf, 7), amount: -oneOff });
+  const scenItems = [...baseFc.items.map((i) => ({ date: i.date, amount: i.amount })), ...deltaItems].sort((a, b) => a.date.localeCompare(b.date));
+  let running = baseFc.openingBalance;
+  let scenarioTrough = running;
+  for (const it of scenItems) {
+    running += it.amount;
+    if (running < scenarioTrough) scenarioTrough = running;
+  }
+  const cashflowImpact: CashflowImpact = {
+    horizonDays: 365,
+    baselineProjectedBalance: baseFc.projectedBalance,
+    scenarioProjectedBalance: baseFc.projectedBalance + deltaItems.reduce((s, i) => s + i.amount, 0),
+    scenarioTrough,
+    scenarioGoesNegative: scenarioTrough < 0,
+  };
+
   const riskFlags: string[] = [];
   if (scenario.monthlySurplus < 0) riskFlags.push('NEGATIVE_MONTHLY_SURPLUS');
   if (scenario.savingsRate < 10) riskFlags.push('LOW_SAVINGS_RATE');
   if (scenario.runwayMonths < 3) riskFlags.push('RUNWAY_UNDER_3_MONTHS');
+  if (cashflowImpact.scenarioGoesNegative) riskFlags.push('FORECAST_DIPS_NEGATIVE');
   if (oneOff > state.currentAccountCash) riskFlags.push('DIPS_INTO_SAVINGS');
   if (oneOff > state.liquidCash) riskFlags.push('EXCEEDS_AVAILABLE_CASH');
 
@@ -115,6 +152,7 @@ export function runScenario(snapshot: FinancialSnapshot, deltas: ScenarioDelta[]
       monthlySavings: scenario.monthlySavings - baseline.monthlySavings,
     },
     goalImpact,
+    cashflowImpact,
     riskFlags,
   };
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { runScenario } from './scenario';
+import { forecast } from './forecast';
 import { acc, txn, snap, cat, goal } from './testkit';
 
 const MONTHS = ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
@@ -50,6 +51,20 @@ describe('runScenario', () => {
     const a = runScenario(s, [{ kind: 'INCOME', monthly: 10_000 }]).baseline;
     const b = runScenario(s, [{ kind: 'SPEND', monthly: 99_000 }]).baseline;
     expect(a).toEqual(b);
+  });
+
+  it('derives cashflow impact from a real forecast re-run, not analytic arithmetic (spec §21)', () => {
+    const r = runScenario(s, [{ kind: 'SPEND', monthly: 6_000 }]); // +£60/mo
+    // The baseline is the actual 12-month forecast on the untouched snapshot, not 12x(income-spend).
+    expect(r.cashflowImpact.baselineProjectedBalance).toBe(forecast(s, 365).projectedBalance);
+    // The scenario layers 12 months of the marginal flow onto that real path.
+    expect(r.cashflowImpact.scenarioProjectedBalance).toBe(r.cashflowImpact.baselineProjectedBalance - 12 * 6_000);
+  });
+
+  it('flags a scenario whose projected balance dips negative within the year', () => {
+    const r = runScenario(s, [{ kind: 'ONE_OFF', amount: 6_000_000 }]); // £60k one-off vs ~£33k in the account
+    expect(r.cashflowImpact.scenarioGoesNegative).toBe(true);
+    expect(r.riskFlags).toContain('FORECAST_DIPS_NEGATIVE');
   });
 
   // Regression: a goal with no recent contributions must report null ("not on this pace"), not

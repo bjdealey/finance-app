@@ -10,6 +10,7 @@ const RISK_LABEL: Record<string, string> = {
   NEGATIVE_MONTHLY_SURPLUS: 'Spends more than it earns each month',
   LOW_SAVINGS_RATE: 'Savings rate drops below 10%',
   RUNWAY_UNDER_3_MONTHS: 'Cash runway under 3 months',
+  FORECAST_DIPS_NEGATIVE: 'Balance would go negative within a year',
   DIPS_INTO_SAVINGS: 'Would dip into savings',
   EXCEEDS_AVAILABLE_CASH: 'Exceeds available cash',
 };
@@ -93,6 +94,7 @@ export function ScenarioLab({ initial }: { initial: ScenarioResult }) {
             <MoneyRow label="Monthly surplus" now={b.monthlySurplus} next={s.monthlySurplus} />
             <PctRow label="Savings rate" now={b.savingsRate} next={s.savingsRate} />
             <MoneyRow label="Projected annual surplus" now={b.annualSurplus} next={s.annualSurplus} />
+            <MoneyRow label="Projected balance in 1 year" now={result.cashflowImpact.baselineProjectedBalance} next={result.cashflowImpact.scenarioProjectedBalance} />
             <Row label="Cash runway">
               <td className="py-2.5 text-right tnum">{b.runwayMonths.toFixed(1)} mo</td>
               <td className="py-2.5 text-right tnum">{s.runwayMonths.toFixed(1)} mo</td>
