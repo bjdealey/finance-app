@@ -107,7 +107,7 @@ export function ScenarioLab({ initial }: { initial: ScenarioResult }) {
         {result.riskFlags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {result.riskFlags.map((r) => (
-              <Badge key={r} tone="warn">{RISK_LABEL[r] ?? r}</Badge>
+              <Badge key={r} tone="warn" className="pop-in">{RISK_LABEL[r] ?? r}</Badge>
             ))}
           </div>
         )}

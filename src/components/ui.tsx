@@ -32,9 +32,11 @@ export function Money({
 export function Badge({
   children,
   tone = 'default',
+  className,
 }: {
   children: ReactNode;
   tone?: 'default' | 'pos' | 'neg' | 'warn' | 'accent';
+  className?: string;
 }) {
   const tones: Record<string, string> = {
     default: 'bg-surface-2 text-muted',
@@ -44,7 +46,7 @@ export function Badge({
     accent: 'bg-accent/10 text-accent',
   };
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', tones[tone])}>
+    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', tones[tone], className)}>
       {children}
     </span>
   );
@@ -54,7 +56,7 @@ export function ProgressBar({ pct, tone = 'primary' }: { pct: number; tone?: 'pr
   const fill = tone === 'pos' ? 'bg-pos' : tone === 'warn' ? 'bg-warn' : 'bg-primary';
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
-      <div className={cn('h-full rounded-full', fill)} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+      <div className={cn('grow-x h-full rounded-full', fill)} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
     </div>
   );
 }

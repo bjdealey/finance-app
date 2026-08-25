@@ -49,9 +49,12 @@ export function RecommendationCard({ rec, accountName, footer }: { rec: Recommen
         {benefit && <div className="shrink-0 rounded-lg bg-pos/10 px-2.5 py-1 text-xs font-medium text-pos">{benefit}</div>}
       </div>
 
-      <details className="group mt-3">
-        <summary className="cursor-pointer text-sm text-primary hover:underline [&::-webkit-details-marker]:hidden">
-          Why this? <span className="text-muted group-open:hidden">▸</span><span className="hidden text-muted group-open:inline">▾</span>
+      <details className="reveal group mt-3">
+        <summary className="flex w-fit cursor-pointer items-center gap-1 text-sm text-primary hover:underline [&::-webkit-details-marker]:hidden">
+          Why this?
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="text-muted transition-transform duration-200 group-open:rotate-90">
+            <path d="M4.5 3 7.5 6 4.5 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </summary>
         <div className="mt-3 space-y-2 border-l-2 border-border pl-4 text-sm">
           {rec.explanation.whyThisAccount && (

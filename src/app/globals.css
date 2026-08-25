@@ -5,56 +5,29 @@
    (bg-bg, text-fg, border-border, text-pos, …). Raw palette hues are lightened/darkened per role so
    text stays legible; gold = positive/value, orange = caution, orange-red = action & loss.
 
-   Theme resolution: :root is light. Dark applies when the OS asks for it (unless the user forced
-   light), or when the user explicitly picks dark — the [data-theme] choice wins over the OS in both
-   directions. The Settings toggle sets/removes data-theme on <html>; layout.tsx applies it pre-paint. */
+   Theme resolution: every var is light-dark(light, dark); color-scheme picks the arm. :root is
+   `light dark` so it follows the OS, and an explicit [data-theme] choice pins the scheme to one,
+   winning over the OS in both directions. The Settings toggle sets/removes data-theme on <html>;
+   layout.tsx applies it pre-paint. */
 :root {
-  --bg: #f4f7ce;        /* pale-yellow canvas (P1, lightened) */
-  --surface: #ffffff;   /* cards pop white on the yellow page */
-  --surface-2: #ecf1af; /* pale-yellow tint — tracks, hover, default chips (P1) */
-  --fg: #03051e;        /* deep-navy ink (P5) */
-  --muted: #575c74;
-  --border: #d9d69c;    /* soft khaki-gold hairline */
-  --primary: #fc3d12;   /* orange-red — brand & primary action (P4) */
+  color-scheme: light dark;                  /* no [data-theme] → follow the OS; light-dark() reads this to pick the arm */
+  --bg: light-dark(#f4f7ce, #03051e);        /* pale-yellow canvas (P1) / deep-navy canvas (P5) */
+  --surface: light-dark(#ffffff, #0b0e2b);   /* cards pop white on yellow; near-black on navy */
+  --surface-2: light-dark(#ecf1af, #141834); /* tracks, hover, default chips */
+  --fg: light-dark(#03051e, #ecf1c4);        /* deep-navy ink / soft pale-yellow ink */
+  --muted: light-dark(#575c74, #9b9fb4);
+  --border: light-dark(#d9d69c, #23274c);    /* soft khaki-gold / navy hairline */
+  --primary: #fc3d12;                        /* orange-red — brand & primary action (P4), both schemes */
   --primary-fg: #ffffff;
-  --pos: #9a7407;       /* deep gold — gains / on-track (P2 hue, darkened for contrast) */
-  --neg: #d62f0e;       /* deep orange-red — losses (P4, darkened) */
-  --warn: #bb6910;      /* dark orange — caution (P3 hue, darkened) */
-  --accent: #bf860a;    /* amber — secondary accent (P2 hue) */
+  --pos: light-dark(#9a7407, #e7d07b);       /* gains / on-track — deep gold on light, gold on navy (P2) */
+  --neg: light-dark(#d62f0e, #ff6046);       /* losses — orange-red, lightened for text on navy (P4) */
+  --warn: light-dark(#bb6910, #fba35c);      /* caution — dark orange / light orange (P3) */
+  --accent: light-dark(#bf860a, #f2c078);    /* secondary accent — amber (P2 hue) */
 }
 
-/* Dark palette — kept in sync between the OS-driven and the explicit-choice selectors below. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #03051e;        /* deep-navy canvas (P5) */
-    --surface: #0b0e2b;
-    --surface-2: #141834;
-    --fg: #ecf1c4;        /* soft pale-yellow ink (P1) */
-    --muted: #9b9fb4;
-    --border: #23274c;
-    --primary: #fc3d12;   /* orange-red pops on navy (P4) */
-    --primary-fg: #ffffff;
-    --pos: #e7d07b;       /* gold — gains (P2) */
-    --neg: #ff6046;       /* lightened orange-red for text on navy */
-    --warn: #fba35c;      /* light orange — caution (P3) */
-    --accent: #f2c078;    /* light amber — secondary accent */
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #03051e;
-  --surface: #0b0e2b;
-  --surface-2: #141834;
-  --fg: #ecf1c4;
-  --muted: #9b9fb4;
-  --border: #23274c;
-  --primary: #fc3d12;
-  --primary-fg: #ffffff;
-  --pos: #e7d07b;
-  --neg: #ff6046;
-  --warn: #fba35c;
-  --accent: #f2c078;
-}
+/* An explicit choice pins the scheme, overriding the OS in both directions. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 @theme inline {
   --color-bg: var(--bg);
@@ -74,7 +47,9 @@
 }
 
 body {
-  background: var(--bg);
+  /* Longhand, not the `background` shorthand: Chromium only re-resolves a light-dark() custom
+     property on a runtime color-scheme flip (the theme toggle) for background-color. */
+  background-color: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -122,6 +97,50 @@ button:not(:disabled):active, .press:active { transform: scale(0.97); }
 .drawer-in { animation: drawer-in 0.24s cubic-bezier(0.2, 0, 0, 1); }
 .scrim-in { animation: fade-in 0.24s ease; }
 
+/* ---------------------------------------------------------------------------
+   Motion pass (Operate mode). The one authored moment is the recommendation
+   reasoning UNFOLDING (see details.reveal below) — the product's POV is that
+   every suggestion is explainable, so opening "Why this?" grows its own height
+   as the trace settles in. Everything else is quiet, single-purpose feedback:
+   progress showing state, chat acknowledging a message, a risk flag catching
+   the eye. Transform / opacity / size only (compositor), confident arrivals on
+   an exponential ease-out, and every one collapses to an already-visible end
+   state under the reduced-motion guard below.
+   --------------------------------------------------------------------------- */
+
+/* State: a bar grows from its left edge to the value it already holds, so the
+   fill reads as "how far", not a static stripe. No animation → shows full. */
+@keyframes grow-x { from { transform: scaleX(0); } }
+.grow-x { transform-origin: left; animation: grow-x 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Feedback: a chat message arrives — rises the last few pixels and fades in once. */
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
+.rise-in { animation: rise-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Feedback: the assistant is thinking — three dots breathe in sequence. */
+@keyframes dot-blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
+.dot { animation: dot-blink 1.4s ease-in-out infinite both; }
+
+/* Loading: a decision is being recorded. */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.7s linear infinite; }
+
+/* Continuity (the authored moment): the reasoning trace expands its own height.
+   Guarded — where the browser can't interpolate to `auto`, the disclosure just
+   opens instantly, exactly as a native <details> always has. */
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+  details.reveal::details-content {
+    block-size: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: block-size 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.22s ease,
+                content-visibility 0.3s allow-discrete;
+  }
+  details.reveal[open]::details-content { block-size: auto; opacity: 1; }
+}
+
 /* Accessibility (§14): honour the three independent signals. */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -136,9 +155,5 @@ button:not(:disabled):active, .press:active { transform: scale(0.97); }
   header { background: var(--surface) !important; backdrop-filter: none !important; }
 }
 @media (prefers-contrast: more) {
-  :root { --border: #8f8b58; --muted: #3f4457; }
-  :root[data-theme="dark"] { --border: #5b6089; --muted: #c4c7d7; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --border: #5b6089; --muted: #c4c7d7; }
-  }
+  :root { --border: light-dark(#8f8b58, #5b6089); --muted: light-dark(#3f4457, #c4c7d7); }
 }

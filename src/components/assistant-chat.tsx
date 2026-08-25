@@ -55,14 +55,18 @@ export function AssistantChat() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-            <div className={cn('max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm sm:max-w-[80%]', m.role === 'user' ? 'bg-primary text-primary-fg' : 'bg-surface-2')}>
+            <div className={cn('rise-in max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm sm:max-w-[80%]', m.role === 'user' ? 'bg-primary text-primary-fg' : 'bg-surface-2')}>
               {m.content}
             </div>
           </div>
         ))}
         {pending && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl bg-surface-2 px-4 py-2.5 text-sm text-muted">Thinking…</div>
+          <div className="rise-in flex justify-start">
+            <div className="flex items-center gap-1.5 rounded-2xl bg-surface-2 px-4 py-3.5" role="status" aria-label="Assistant is thinking">
+              <span className="dot h-1.5 w-1.5 rounded-full bg-muted" />
+              <span className="dot h-1.5 w-1.5 rounded-full bg-muted [animation-delay:0.2s]" />
+              <span className="dot h-1.5 w-1.5 rounded-full bg-muted [animation-delay:0.4s]" />
+            </div>
           </div>
         )}
         {error && <p className="text-center text-sm text-neg">{error}</p>}
