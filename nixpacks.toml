@@ -1,0 +1,6 @@
+# Railway's `npm ci` rejected esbuild's optional platform packages even though the committed
+# lockfile lists all 26 of them — a strict-sync mismatch between the npm that wrote the lockfile
+# and the npm in Railway's build image. `npm install` reconciles instead of erroring. Build-critical
+# packages live in "dependencies" (see package.json), so this still installs everything the build needs.
+[phases.install]
+cmds = ["npm install --no-audit --no-fund"]
