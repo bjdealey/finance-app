@@ -16,7 +16,7 @@ export default async function NewTransactionPage() {
       {accounts.length === 0 ? (
         <Card>
           <p className="text-sm text-muted">You need an account first.</p>
-          <Link href="/accounts/new" className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg">Add an account</Link>
+          <Link href="/accounts/new" className="mt-4 inline-block rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg">Add an account</Link>
         </Card>
       ) : (
         <TransactionForm accounts={accounts} categories={categoryOptions(cats)} today={today} />

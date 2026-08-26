@@ -66,7 +66,7 @@ export function Sparkline({ values, className }: { values: number[]; className?:
   return (
     <div className={cn('flex h-8 items-end gap-px', className)} aria-hidden>
       {values.map((v, i) => (
-        <div key={i} className="flex-1 rounded-sm bg-primary/35" style={{ height: `${Math.max(3, (v / max) * 100)}%` }} />
+        <div key={i} className="flex-1 rounded-sm bg-accent/40" style={{ height: `${Math.max(3, (v / max) * 100)}%` }} />
       ))}
     </div>
   );

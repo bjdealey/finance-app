@@ -43,7 +43,7 @@ export function GoalForm({ action, goal, accounts, compact }: {
       </div>
       <FormError error={state.error} />
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
           {pending ? 'Saving…' : goal ? 'Save changes' : 'Add goal'}
         </button>
         {!compact && <Link href="/goals" className="rounded-lg border border-border px-4 py-2 text-sm">Cancel</Link>}

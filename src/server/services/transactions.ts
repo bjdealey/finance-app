@@ -1,6 +1,7 @@
-import { and, eq, gte, lte, ilike, or, desc, sql, type SQL } from 'drizzle-orm';
+import { and, eq, gte, lte, ilike, or, desc, sql, inArray, notInArray, type SQL } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import { transactions, accounts, categories, categoryRules } from '@/server/db/schema';
+import { merchantToken } from '@/core/categorise';
 import type { TransactionType, TxnStatus } from '@/core/types';
 
 export interface TxnFilters {
@@ -133,9 +134,186 @@ export async function addTransaction(userId: string, input: NewTransaction): Pro
   });
 }
 
+// Fetch a MANUAL transaction's re-addable fields, for delete → undo. Null if not found, not owned,
+// or not MANUAL (only MANUAL rows can be deleted, so only those need a restore path).
+export async function getTransaction(userId: string, id: string): Promise<NewTransaction | null> {
+  const [row] = await db
+    .select({
+      accountId: transactions.accountId,
+      date: transactions.date,
+      amount: transactions.amount,
+      description: transactions.description,
+      merchant: transactions.merchant,
+      categoryId: transactions.categoryId,
+      transactionType: transactions.transactionType,
+      status: transactions.status,
+    })
+    .from(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.source, 'MANUAL')))
+    .limit(1);
+  return row ? (row as NewTransaction) : null;
+}
+
 // Delete a MANUAL transaction only — imported/seed ledger entries stay immutable (spec §37).
 export async function deleteTransaction(userId: string, id: string): Promise<void> {
   await db
     .delete(transactions)
     .where(and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.source, 'MANUAL')));
+}
+
+// ---- Bulk operations (multi-select) ----------------------------------------
+
+// A selection is either an explicit set of row ids (the current page's checkboxes) or the full set
+// matching the active filter ("select all N matching"). Every bulk op resolves it to one WHERE clause.
+export type Selection =
+  | { mode: 'ids'; ids: string[] }
+  | { mode: 'filter'; filter: TxnFilters };
+
+function selectionWhere(userId: string, sel: Selection): SQL {
+  if (sel.mode === 'ids') {
+    return and(eq(transactions.userId, userId), inArray(transactions.id, sel.ids)) as SQL;
+  }
+  return buildWhere(userId, sel.filter); // buildWhere ignores limit/offset — bulk acts on the whole match
+}
+
+// Transfers and card-payments are internal movements that carry no category — excluded from
+// recategorisation and reported as skipped, never silently changed.
+const NON_CATEGORISABLE: TransactionType[] = ['TRANSFER', 'CARD_PAYMENT'];
+
+export async function categoryOwned(userId: string, categoryId: string): Promise<boolean> {
+  const [c] = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
+    .limit(1);
+  return Boolean(c);
+}
+
+// Recategorise every categorisable row in the selection in one statement. Returns how many were set
+// and how many were skipped as non-categorisable, for an honest "N recategorised · M skipped" message.
+export async function bulkRecategorize(
+  userId: string,
+  sel: Selection,
+  categoryId: string,
+): Promise<{ updated: number; skipped: number }> {
+  const base = selectionWhere(userId, sel);
+  const updated = await db
+    .update(transactions)
+    .set({ categoryId, confidence: 100 })
+    .where(and(base, notInArray(transactions.transactionType, NON_CATEGORISABLE)) as SQL)
+    .returning({ id: transactions.id });
+  const [skip] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(transactions)
+    .where(and(base, inArray(transactions.transactionType, NON_CATEGORISABLE)) as SQL);
+  return { updated: updated.length, skipped: skip?.n ?? 0 };
+}
+
+// Delete only the MANUAL rows in the selection (imported/seed entries stay immutable), capturing their
+// re-addable fields first so the whole batch restores from one Undo. Non-manual rows are counted as
+// skipped, never touched.
+export async function bulkDeleteManual(
+  userId: string,
+  sel: Selection,
+): Promise<{ deleted: NewTransaction[]; skipped: number }> {
+  const base = selectionWhere(userId, sel);
+  const manual = and(base, eq(transactions.source, 'MANUAL')) as SQL;
+  const captured = await db
+    .select({
+      accountId: transactions.accountId,
+      date: transactions.date,
+      amount: transactions.amount,
+      description: transactions.description,
+      merchant: transactions.merchant,
+      categoryId: transactions.categoryId,
+      transactionType: transactions.transactionType,
+      status: transactions.status,
+    })
+    .from(transactions)
+    .where(manual);
+  const [skip] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(transactions)
+    .where(and(base, notInArray(transactions.source, ['MANUAL'])) as SQL);
+  if (captured.length) await db.delete(transactions).where(manual);
+  return { deleted: captured as NewTransaction[], skipped: skip?.n ?? 0 };
+}
+
+// Create auto-categorise rules from the selection's merchants (one KEYWORD rule per distinct token,
+// skipping tokens that already have a rule for this category), then file the selection into that
+// category too. Future imports of those merchants then categorise themselves.
+export async function bulkCreateRuleAndFile(
+  userId: string,
+  sel: Selection,
+  categoryId: string,
+): Promise<{ rulesCreated: number; tokens: string[]; filed: number }> {
+  const base = selectionWhere(userId, sel);
+  const rows = await db.select({ merchant: transactions.merchant }).from(transactions).where(base);
+  const tokens = [...new Set(rows.map((r) => merchantToken(r.merchant)).filter((t): t is string => t !== null))];
+
+  let created: string[] = [];
+  if (tokens.length) {
+    const existing = await db
+      .select({ pattern: categoryRules.pattern })
+      .from(categoryRules)
+      .where(and(eq(categoryRules.userId, userId), eq(categoryRules.matchType, 'KEYWORD'), eq(categoryRules.categoryId, categoryId)));
+    const have = new Set(existing.map((e) => e.pattern.toLowerCase()));
+    created = tokens.filter((t) => !have.has(t));
+    if (created.length) {
+      await db.insert(categoryRules).values(
+        created.map((pattern) => ({ userId, matchType: 'KEYWORD' as const, pattern, categoryId, priority: 0, source: 'USER_CORRECTION' as const })),
+      );
+    }
+  }
+
+  const { updated } = await bulkRecategorize(userId, sel, categoryId);
+  return { rulesCreated: created.length, tokens: created, filed: updated };
+}
+
+// Serialise the selection to CSV for download (newest first, capped). Columns match the on-screen list.
+const EXPORT_CAP = 10_000;
+function csvCell(v: string): string {
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+export async function exportTransactionsCsv(
+  userId: string,
+  sel: Selection,
+): Promise<{ csv: string; rowCount: number; capped: boolean }> {
+  const rows = await db
+    .select({
+      date: transactions.date,
+      merchant: transactions.merchant,
+      description: transactions.description,
+      accountName: accounts.name,
+      categoryName: categories.name,
+      amount: transactions.amount,
+      transactionType: transactions.transactionType,
+      status: transactions.status,
+    })
+    .from(transactions)
+    .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .where(selectionWhere(userId, sel))
+    .orderBy(desc(transactions.date), desc(transactions.createdAt))
+    .limit(EXPORT_CAP + 1);
+
+  const capped = rows.length > EXPORT_CAP;
+  const use = capped ? rows.slice(0, EXPORT_CAP) : rows;
+  const lines = ['Date,Merchant,Account,Category,Amount,Type,Status'];
+  for (const r of use) {
+    lines.push(
+      [
+        r.date,
+        r.merchant ?? r.description ?? '',
+        r.accountName ?? '',
+        r.categoryName ?? '',
+        (r.amount / 100).toFixed(2),
+        r.transactionType.toLowerCase(),
+        r.status.toLowerCase(),
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+  }
+  return { csv: lines.join('\r\n'), rowCount: use.length, capped };
 }

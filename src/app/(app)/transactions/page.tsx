@@ -3,10 +3,8 @@ import { requireUser } from '@/server/auth/session';
 import { listTransactions, type TxnFilters } from '@/server/services/transactions';
 import { listAccounts, listCategories, categoryOptions } from '@/server/services/reference';
 import type { TransactionType } from '@/core/types';
-import { Card, Money, Badge, PageHeader } from '@/components/ui';
-import { CategorySelect } from '@/components/category-select';
-import { deleteTransactionAction } from './actions';
-import { formatDateShort } from '@/lib/format';
+import { PageHeader } from '@/components/ui';
+import { TransactionsTable } from '@/components/transactions-table';
 
 const TYPES: TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER', 'REFUND', 'INTEREST', 'FEE', 'CARD_PAYMENT', 'UNKNOWN'];
 const PAGE_SIZE = 50;
@@ -52,7 +50,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       <div className="mb-6 flex items-end justify-between gap-4">
         <PageHeader title="Transactions" subtitle={`${total.toLocaleString()} transactions`} />
         <div className="flex shrink-0 gap-2">
-          <Link href="/transactions/new" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg">Add</Link>
+          <Link href="/transactions/new" className="rounded-lg bg-primary-strong px-3 py-2 text-sm font-medium text-primary-fg">Add</Link>
           <Link href="/transactions/import" className="rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2">Import CSV</Link>
         </div>
       </div>
@@ -82,41 +80,19 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <input type="date" name="dateTo" defaultValue={filters.dateTo ?? ''} className="rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary" />
       </form>
 
-      <Card className="p-0">
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[36rem] text-sm">
-          <tbody className="divide-y divide-border">
-            {rows.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-muted">No transactions match these filters.</td></tr>
-            )}
-            {rows.map((t) => {
-              const isTransfer = t.transactionType === 'TRANSFER' || t.transactionType === 'CARD_PAYMENT';
-              return (
-                <tr key={t.id}>
-                  <td className="w-20 py-2.5 pl-5 text-muted">{formatDateShort(t.date)}</td>
-                  <td className="py-2.5">
-                    {t.merchant ?? t.description ?? '—'}
-                    {t.status === 'PENDING' && <span className="ml-2"><Badge tone="warn">planned</Badge></span>}
-                  </td>
-                  <td className="hidden py-2.5 text-muted lg:table-cell">{t.accountName}</td>
-                  <td className="py-2.5">
-                    {isTransfer ? <Badge>transfer</Badge> : <CategorySelect txnId={t.id} categoryId={t.categoryId} options={catOpts} />}
-                  </td>
-                  <td className="py-2.5 text-right"><Money pence={t.amount} colored signed /></td>
-                  <td className="w-8 py-2.5 pl-2 pr-4 text-right align-middle">
-                    {t.source === 'MANUAL' && (
-                      <form action={deleteTransactionAction.bind(null, t.id)}>
-                        <button className="text-base leading-none text-muted hover:text-neg" title="Delete this manual entry" aria-label="Delete transaction">×</button>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        </div>
-      </Card>
+      <TransactionsTable
+        rows={rows}
+        catOpts={catOpts}
+        total={total}
+        filter={{
+          search: filters.search,
+          accountId: filters.accountId,
+          categoryId: filters.categoryId,
+          type: filters.type,
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        }}
+      />
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm">

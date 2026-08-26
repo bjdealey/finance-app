@@ -48,3 +48,6 @@ next-env.d.ts
 /.agents/
 /.claude/skills/
 /skills-lock.json
+
+# generated design-review reports (the DESIGN.md sidecar .impeccable/design.json IS committed)
+/.impeccable/critique/

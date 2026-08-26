@@ -3,6 +3,8 @@ import { requireUser } from '@/server/auth/session';
 import { getAnalysis } from '@/server/services/analysis';
 import { Card, Money, Badge, ProgressBar, PageHeader } from '@/components/ui';
 import { RecommendationCard } from '@/components/recommendation-card';
+import { Explainer } from '@/components/explainer';
+import { GLOSSARY } from '@/lib/glossary';
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -33,7 +35,7 @@ export default async function DashboardPage() {
             <Tile label="Debt" value={-(s.creditCardDebt + s.otherDebt)} hint="cards & loans" negativeTone />
           </div>
           <p className="mt-4 text-xs text-muted">
-            <Money pence={s.liquidCash} /> is available instantly · {runwayMonths.toFixed(1)} months of essential spending in cash
+            <Money pence={s.liquidCash} /> is <Explainer def={GLOSSARY.liquidCash}>available instantly</Explainer> · {runwayMonths.toFixed(1)} months of essential spending in cash
           </p>
         </Card>
       </section>
@@ -58,7 +60,7 @@ export default async function DashboardPage() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">What you should do</h2>
-          <Link href="/recommendations" className="text-sm text-primary hover:underline">All recommendations →</Link>
+          <Link href="/recommendations" className="text-sm text-primary-ink hover:underline">All recommendations →</Link>
         </div>
         {topRecs.length === 0 ? (
           <Card><p className="text-sm text-muted">Nothing to act on — your money is well placed.</p></Card>
@@ -98,12 +100,12 @@ export default async function DashboardPage() {
           <Card>
             <span className="text-sm font-medium">Trajectory</span>
             <dl className="mt-4 space-y-3 text-sm">
-              <Row label="Effective savings rate"><span className="font-medium">{s.effectiveSavingsRate}%</span></Row>
-              <Row label="Net savings rate"><span className="font-medium">{s.netSavingsRate}%</span></Row>
-              <Row label="Cash runway"><span className="font-medium">{runwayMonths.toFixed(1)} months</span></Row>
+              <Row label={<Explainer def={GLOSSARY.effectiveSavingsRate}>Effective savings rate</Explainer>}><span className="font-medium">{s.effectiveSavingsRate}%</span></Row>
+              <Row label={<Explainer def={GLOSSARY.netSavingsRate}>Net savings rate</Explainer>}><span className="font-medium">{s.netSavingsRate}%</span></Row>
+              <Row label={<Explainer def={GLOSSARY.cashRunway}>Cash runway</Explainer>}><span className="font-medium">{runwayMonths.toFixed(1)} months</span></Row>
               <Row label="Projected in 12 months"><Money pence={a.forecasts[365].projectedBalance} className="font-medium" /></Row>
-              <Row label="Emergency fund"><span className="font-medium"><Money pence={a.liquidity.emergencyFundCurrent} /> / <Money pence={a.liquidity.emergencyFundTarget} /></span></Row>
-              <Row label="ISA allowance left"><span className="font-medium"><Money pence={a.isa.remaining} /> of <Money pence={a.isa.annualAllowance} /></span></Row>
+              <Row label={<Explainer def={GLOSSARY.emergencyFund}>Emergency fund</Explainer>}><span className="font-medium"><Money pence={a.liquidity.emergencyFundCurrent} /> / <Money pence={a.liquidity.emergencyFundTarget} /></span></Row>
+              <Row label={<Explainer def={GLOSSARY.isaAllowance}>ISA allowance left</Explainer>}><span className="font-medium"><Money pence={a.isa.remaining} /> of <Money pence={a.isa.annualAllowance} /></span></Row>
             </dl>
           </Card>
         </div>
@@ -131,7 +133,7 @@ function Flow({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
       <dt className="text-muted">{label}</dt>

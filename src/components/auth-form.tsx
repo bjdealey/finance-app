@@ -12,7 +12,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6">
       <div className="mb-8 text-center">
-        <div className="text-sm font-semibold uppercase tracking-widest text-primary">Finance OS</div>
+        <div className="text-sm font-semibold uppercase tracking-widest text-primary-ink">Finance OS</div>
         <h1 className="mt-2 text-2xl font-semibold">{isLogin ? 'Welcome back' : 'Create your account'}</h1>
         <p className="mt-1 text-sm text-muted">
           See what your money should do next — with the reasoning shown.
@@ -41,7 +41,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-fg transition disabled:opacity-60"
+          className="w-full rounded-lg bg-primary-strong px-4 py-2.5 font-medium text-primary-fg transition disabled:opacity-60"
         >
           {pending ? 'Please wait…' : isLogin ? 'Sign in' : 'Create account'}
         </button>
@@ -51,14 +51,14 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         {isLogin ? (
           <>
             No account?{' '}
-            <Link href="/register" className="text-primary hover:underline">
+            <Link href="/register" className="text-primary-ink hover:underline">
               Create one
             </Link>
           </>
         ) : (
           <>
             Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href="/login" className="text-primary-ink hover:underline">
               Sign in
             </Link>
           </>

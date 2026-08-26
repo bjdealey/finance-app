@@ -32,7 +32,7 @@ export function CategoryForm({ action, roots }: {
         </Field>
       </div>
       <FormError error={state.error} />
-      <button type="submit" disabled={pending} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
         {pending ? 'Adding…' : 'Add category'}
       </button>
     </form>

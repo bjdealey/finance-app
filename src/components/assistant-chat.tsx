@@ -13,12 +13,46 @@ const SUGGESTIONS = [
   'Why is my savings rate lower than I thought?',
 ];
 
-export function AssistantChat() {
+const STORE_PREFIX = 'financeos.assistant.';
+const MAX_STORED = 50; // keep the saved transcript from growing without bound
+
+export function AssistantChat({ userId }: { userId: string }) {
+  const storageKey = STORE_PREFIX + userId;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Restore the saved transcript once on mount. Read in an effect (not a lazy initializer) so the
+  // server-rendered empty state matches the first client render — no hydration mismatch. Keyed per
+  // user so switching accounts on a shared browser never shows one person's chat to another. Guarded:
+  // storage can be unavailable (private mode) or hold corrupt/forged data, so every entry is revalidated.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const saved: unknown = JSON.parse(raw);
+        if (Array.isArray(saved)) setMessages(saved.filter(isChatMessage));
+      }
+    } catch {
+      /* unreadable storage — start empty */
+    }
+    setHydrated(true);
+  }, [storageKey]);
+
+  // Persist after each turn — but only once hydrated, so the initial empty state can't overwrite a
+  // saved transcript before we've read it.
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (messages.length) localStorage.setItem(storageKey, JSON.stringify(messages.slice(-MAX_STORED)));
+      else localStorage.removeItem(storageKey);
+    } catch {
+      /* quota / disabled — chat still works this session */
+    }
+  }, [messages, hydrated, storageKey]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,8 +72,21 @@ export function AssistantChat() {
     setMessages([...next, { role: 'assistant', content: res.text ?? '' }]);
   }
 
+  function clear() {
+    setMessages([]);
+    setError(null);
+  }
+
   return (
     <div className="flex min-h-[60vh] flex-col rounded-xl border border-border bg-surface">
+      {messages.length > 0 && (
+        <div className="flex items-center justify-between border-b border-border px-5 py-2.5">
+          <span className="text-xs text-muted">Saved on this device</span>
+          <button onClick={clear} className="rounded-md px-2 py-1 text-xs text-muted transition hover:bg-surface-2 hover:text-fg">
+            Clear
+          </button>
+        </div>
+      )}
       <div className="flex-1 space-y-4 overflow-y-auto p-5">
         {messages.length === 0 && (
           <div className="py-8 text-center">
@@ -55,7 +102,7 @@ export function AssistantChat() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-            <div className={cn('rise-in max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm sm:max-w-[80%]', m.role === 'user' ? 'bg-primary text-primary-fg' : 'bg-surface-2')}>
+            <div className={cn('rise-in max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm sm:max-w-[80%]', m.role === 'user' ? 'bg-primary-strong text-primary-fg' : 'bg-surface-2')}>
               {m.content}
             </div>
           </div>
@@ -89,11 +136,19 @@ export function AssistantChat() {
         <button
           type="submit"
           disabled={pending || !input.trim()}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50"
+          className="rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50"
         >
           Send
         </button>
       </form>
     </div>
   );
+}
+
+// Restored transcripts are untrusted (anyone can edit localStorage): keep only well-formed,
+// non-empty turns, matching the server action's own history schema.
+function isChatMessage(m: unknown): m is ChatMessage {
+  if (typeof m !== 'object' || m === null) return false;
+  const { role, content } = m as { role?: unknown; content?: unknown };
+  return (role === 'user' || role === 'assistant') && typeof content === 'string' && content.trim().length > 0;
 }

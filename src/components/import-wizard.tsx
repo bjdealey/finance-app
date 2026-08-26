@@ -125,7 +125,7 @@ export function ImportWizard({ accounts }: { accounts: AccountRef[] }) {
             <button
               onClick={doImport}
               disabled={!accountId || importing}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50"
+              className="rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50"
             >
               {importing ? 'Importing…' : `Import ${preview.rowCount.toLocaleString()} rows`}
             </button>
@@ -151,7 +151,7 @@ function ResultView({ result }: { result: ImportActionResult }) {
         <li>Rows with errors: <strong>{result.errors ?? 0}</strong></li>
         <li>Internal transfers detected &amp; excluded from spending: <strong>{result.transfersDetected ?? 0}</strong></li>
       </ul>
-      <Link href="/transactions" className="mt-5 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg">
+      <Link href="/transactions" className="mt-5 inline-block rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg">
         View transactions
       </Link>
     </Card>

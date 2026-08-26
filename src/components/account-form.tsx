@@ -49,7 +49,7 @@ export function AccountForm({ action, account }: {
           <Field label={isDebt ? 'Balance owed (£)' : 'Current balance (£)'} hint={account ? 'This is the opening-balance anchor; day-to-day balance comes from transactions.' : isDebt ? 'How much you currently owe.' : 'What the account holds today.'}>
             <input name="balance" required inputMode="decimal" defaultValue={money(account?.openingBalance)} placeholder="0.00" className={inputCls} />
           </Field>
-          <Field label="Interest rate (% AER/APR)" hint="Optional">
+          <Field label="Interest rate (% AER/APR)" hint="AER for savings, APR for debt — the yearly rate. Optional.">
             <input name="interestRate" inputMode="decimal" defaultValue={account ? account.interestRateBps / 100 : ''} placeholder="0.00" className={inputCls} />
           </Field>
         </div>
@@ -72,7 +72,7 @@ export function AccountForm({ action, account }: {
         )}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Tax wrapper" hint="Optional">
+          <Field label="Tax wrapper" hint="An ISA shelters the interest and growth from tax. Optional.">
             <select name="taxWrapper" defaultValue={account?.taxWrapper ?? ''} className={inputCls}>
               <option value="">None</option>
               <option value="CASH_ISA">Cash ISA</option>
@@ -87,7 +87,7 @@ export function AccountForm({ action, account }: {
         <FormError error={state.error} />
 
         <div className="flex items-center gap-3">
-          <button type="submit" disabled={pending} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
             {pending ? 'Saving…' : account ? 'Save changes' : 'Add account'}
           </button>
           <Link href="/accounts" className="rounded-lg border border-border px-4 py-2 text-sm">Cancel</Link>

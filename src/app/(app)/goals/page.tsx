@@ -3,7 +3,8 @@ import { requireUser } from '@/server/auth/session';
 import { getAnalysis } from '@/server/services/analysis';
 import { Card, Money, Badge, ProgressBar, PageHeader } from '@/components/ui';
 import { GoalForm } from '@/components/goal-form';
-import { createGoalAction, deleteGoalAction } from './actions';
+import { createGoalAction, deleteGoalAction, restoreGoalAction } from './actions';
+import { ConfirmButton } from '@/components/confirm-button';
 import { formatDate } from '@/lib/format';
 
 export default async function GoalsPage() {
@@ -32,9 +33,14 @@ export default async function GoalsPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-3 text-xs">
                   <Link href={`/goals/${g.goal.id}/edit`} className="text-muted hover:text-fg">Edit</Link>
-                  <form action={deleteGoalAction.bind(null, g.goal.id)}>
-                    <button className="text-muted hover:text-neg">Delete</button>
-                  </form>
+                  <ConfirmButton
+                    action={deleteGoalAction.bind(null, g.goal.id)}
+                    onUndo={restoreGoalAction}
+                    triggerClassName="text-muted transition hover:text-neg"
+                    confirmLabel="Delete goal"
+                  >
+                    Delete
+                  </ConfirmButton>
                 </div>
               </div>
               <div className="mt-3"><ProgressBar pct={g.progressPct} tone={g.onTrack === false ? 'warn' : 'pos'} /></div>

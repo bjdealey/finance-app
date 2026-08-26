@@ -4,7 +4,8 @@ import { loadSnapshot } from '@/server/services/snapshot';
 import { computeBalances } from '@/core/ledger';
 import type { AccountType } from '@/core/types';
 import { Card, Money, Badge, PageHeader } from '@/components/ui';
-import { deactivateAccountAction } from './actions';
+import { deactivateAccountAction, reactivateAccountAction } from './actions';
+import { ConfirmButton } from '@/components/confirm-button';
 
 const GROUPS: { key: string; types: AccountType[] }[] = [
   { key: 'Current accounts', types: ['CURRENT'] },
@@ -32,7 +33,7 @@ export default async function AccountsPage() {
     <div>
       <div className="mb-6 flex items-end justify-between gap-4">
         <PageHeader title="Accounts" subtitle="Everything in one place, grouped by purpose." />
-        <Link href="/accounts/new" className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg">
+        <Link href="/accounts/new" className="shrink-0 rounded-lg bg-primary-strong px-3 py-2 text-sm font-medium text-primary-fg">
           Add account
         </Link>
       </div>
@@ -40,7 +41,7 @@ export default async function AccountsPage() {
       {snapshot.accounts.length === 0 ? (
         <Card>
           <p className="text-sm text-muted">No accounts yet. Add your current account, savings, cards and more — then import or add transactions to see your full picture.</p>
-          <Link href="/accounts/new" className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg">Add your first account</Link>
+          <Link href="/accounts/new" className="mt-4 inline-block rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg">Add your first account</Link>
         </Card>
       ) : (
         <div className="space-y-6">
@@ -80,9 +81,15 @@ export default async function AccountsPage() {
                           <Money pence={b?.balance ?? 0} colored={isCard} className="text-lg font-semibold" />
                           <div className="flex flex-col items-end gap-1 text-xs">
                             <Link href={`/accounts/${a.id}/edit`} className="text-muted hover:text-fg">Edit</Link>
-                            <form action={deactivateAccountAction.bind(null, a.id)}>
-                              <button className="text-muted hover:text-neg" title="Close this account — hides it from your financial picture">Close</button>
-                            </form>
+                            <ConfirmButton
+                              action={deactivateAccountAction.bind(null, a.id)}
+                              onUndo={reactivateAccountAction}
+                              triggerClassName="text-muted transition hover:text-neg"
+                              title="Close this account — hides it from your financial picture"
+                              confirmLabel="Close account"
+                            >
+                              Close
+                            </ConfirmButton>
                           </div>
                         </div>
                       </li>

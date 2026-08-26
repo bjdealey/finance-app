@@ -87,8 +87,19 @@ export async function updateAccountAction(id: string, _prev: AccountFormState, f
   redirect('/accounts');
 }
 
-export async function deactivateAccountAction(id: string): Promise<void> {
+export async function deactivateAccountAction(id: string): Promise<{ message: string; undo: { id: string } }> {
   const user = await requireUser();
+  const acct = await getAccount(user.id, id);
   await setAccountActive(user.id, id, false);
   revalidatePath('/accounts');
+  revalidatePath('/dashboard');
+  return { message: `Closed ${acct?.name ?? 'account'}`, undo: { id } };
+}
+
+// Undo a close — reactivate the same account (soft close, so nothing was lost).
+export async function reactivateAccountAction(undo: { id: string }): Promise<void> {
+  const user = await requireUser();
+  await setAccountActive(user.id, undo.id, true);
+  revalidatePath('/accounts');
+  revalidatePath('/dashboard');
 }

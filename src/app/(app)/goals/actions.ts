@@ -61,9 +61,29 @@ export async function updateGoalAction(id: string, _prev: GoalFormState, formDat
   redirect('/goals');
 }
 
-export async function deleteGoalAction(id: string): Promise<void> {
+export async function deleteGoalAction(id: string): Promise<{ message: string; undo?: GoalInput }> {
   const user = await requireUser();
+  const goal = await getGoal(user.id, id);
   await deleteGoal(user.id, id);
+  revalidatePath('/goals');
+  revalidatePath('/dashboard');
+  const undo: GoalInput | undefined = goal
+    ? {
+        name: goal.name,
+        targetAmount: goal.targetAmount,
+        targetDate: goal.targetDate,
+        linkedAccountId: goal.linkedAccountId,
+        currentAmount: goal.currentAmount,
+        priority: goal.priority,
+      }
+    : undefined;
+  return { message: goal ? `Deleted "${goal.name}"` : 'Goal deleted', undo };
+}
+
+// Undo a delete — recreate the goal from the captured input.
+export async function restoreGoalAction(input: GoalInput): Promise<void> {
+  const user = await requireUser();
+  await createGoal(user.id, input);
   revalidatePath('/goals');
   revalidatePath('/dashboard');
 }

@@ -11,7 +11,12 @@ export interface GoalInput {
   priority: number;
 }
 
+// Untrusted route param: a malformed id would throw on the uuid cast (a 500-class error) instead of a
+// 404. Gate it so a stale or hand-edited link resolves to the caller's notFound() 404.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getGoal(userId: string, id: string): Promise<GoalRow | null> {
+  if (!UUID_RE.test(id)) return null;
   const [row] = await db
     .select()
     .from(goals)
