@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Finance OS",
-  description: "A personal financial optimisation platform — see what your money should do next.",
+  title: "Digby",
+  description: "Digby — see what your money should do next, with the reasoning shown.",
 };
 
 // Applies the saved theme choice to <html> before first paint, so a forced light/dark never flashes.

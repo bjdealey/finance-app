@@ -1,30 +1,32 @@
 @import "tailwindcss";
 
-/* Warm "sunset + ink" palette (Coolors): pale-yellow, gold, light-orange, orange-red, deep navy.
-   Semantic vars flip with the colour scheme; @theme maps them to Tailwind utilities
-   (bg-bg, text-fg, border-border, text-pos, …). Raw palette hues are lightened/darkened per role so
-   text stays legible; gold = positive/value, orange = caution, orange-red = action & loss.
+/* Digby — warm "charcoal + cream" palette. Light = cream paper, charcoal ink; dark = the raccoon's
+   charcoal fur, cream ink (its cream face markings). One warm-rust action colour carries every
+   "do this" (buttons, links, focus, input focus-border, ::selection); the value family is natural —
+   forest green = gain, brick red = loss, ochre = caution, honey = accent. @theme maps these to the
+   Tailwind utilities (bg-bg, text-fg, border-border, text-pos, …); rust is kept distinct from the
+   brick-red loss by hue (oranger) and role (fills/actions, never a figure).
 
    Theme resolution: every var is light-dark(light, dark); color-scheme picks the arm. :root is
    `light dark` so it follows the OS, and an explicit [data-theme] choice pins the scheme to one,
    winning over the OS in both directions. The Settings toggle sets/removes data-theme on <html>;
-   layout.tsx applies it pre-paint. */
+   layout.tsx applies it pre-paint. Every text/button pairing clears WCAG AA (≥4.5:1) in both arms. */
 :root {
-  color-scheme: light dark;                  /* no [data-theme] → follow the OS; light-dark() reads this to pick the arm */
-  --bg: light-dark(#f4f7ce, #03051e);        /* pale-yellow canvas (P1) / deep-navy canvas (P5) */
-  --surface: light-dark(#ffffff, #0b0e2b);   /* cards pop white on yellow; near-black on navy */
-  --surface-2: light-dark(#ecf1af, #141834); /* tracks, hover, default chips */
-  --fg: light-dark(#03051e, #ecf1c4);        /* deep-navy ink / soft pale-yellow ink */
-  --muted: light-dark(#575c74, #9b9fb4);
-  --border: light-dark(#d9d69c, #23274c);    /* soft khaki-gold / navy hairline */
-  --primary: #fc3d12;                          /* Signal Orange — vivid brand: logo mark, fills, ::selection (non-text/large; both schemes) */
+  color-scheme: light dark;                    /* no [data-theme] → follow the OS; light-dark() reads this to pick the arm */
+  --bg: light-dark(#f1ebde, #1b1c20);          /* cream paper canvas / charcoal-fur canvas */
+  --surface: light-dark(#fbf8f1, #242529);     /* cards lift toward warm white / a lifted charcoal */
+  --surface-2: light-dark(#e7dfcd, #2f3035);   /* recessed — tracks, hover, default chips */
+  --fg: light-dark(#262420, #ece5d5);          /* charcoal ink / cream ink */
+  --muted: light-dark(#635c4f, #a39c8c);       /* warm secondary text */
+  --border: light-dark(#ded5c1, #34353b);      /* soft warm hairline / charcoal hairline */
+  --primary: #c15e2c;                          /* Digby Rust — vivid brand action: input focus-border, large/non-text fills, ::selection (both schemes) */
   --primary-fg: #ffffff;
-  --primary-strong: #cc300c;                   /* deep orange for BUTTONS — white text clears AA (≥4.5:1) in both schemes */
-  --primary-ink: light-dark(#cc300c, #fc3d12); /* orange TEXT & links — deep on light, vivid on dark; AA either way */
-  --pos: light-dark(#8a6800, #e7d07b);         /* gains / on-track — gold; light arm deepened to clear AA as text (P2) */
-  --neg: light-dark(#d62f0e, #ff6046);         /* losses — orange-red, lightened for text on navy (P4; already ≥4.5:1) */
-  --warn: light-dark(#9e590c, #fba35c);        /* caution — burnt orange; light arm deepened to clear AA as text (P3) */
-  --accent: light-dark(#8f6400, #f2c078);      /* secondary accent — amber; light arm deepened to clear AA as text (P2 hue) */
+  --primary-strong: #a94e1e;                   /* deep rust for BUTTONS — white text clears AA (≈5.5:1) in both schemes */
+  --primary-ink: light-dark(#a9501f, #e89a63); /* rust TEXT & links — deep on cream, warm-bright on charcoal; AA either way */
+  --pos: light-dark(#367049, #86c89a);         /* gains / on-track — forest green; light arm deepened to clear AA as text */
+  --neg: light-dark(#a62d2d, #ec8a7c);         /* losses / debt — brick red; distinct from the rust action (redder, never a fill) */
+  --warn: light-dark(#8a5a12, #e4b15e);        /* caution — ochre; light arm deepened to clear AA as text */
+  --accent: light-dark(#7f6220, #e6c079);      /* secondary highlight — honey; light arm deepened to clear AA as text */
 }
 
 /* An explicit choice pins the scheme, overriding the OS in both directions. */
@@ -173,14 +175,15 @@ button:not(:disabled):active, .press:active { transform: scale(0.97); }
 }
 @media (prefers-contrast: more) {
   :root {
-    --border: light-dark(#8f8b58, #5b6089);
-    --muted: light-dark(#3f4457, #c4c7d7);
+    --border: light-dark(#c7bc9f, #4a4b53);
+    --muted: light-dark(#4a4536, #c9c3b4);
     /* Push the action + semantic colours past AA for high-contrast users, in both schemes. */
-    --primary-strong: light-dark(#a82708, #d1330d);
-    --primary-ink: light-dark(#a82708, #ff6a44);
-    --pos: light-dark(#6f5300, #f0dc92);
-    --warn: light-dark(#7d460a, #ffb877);
-    --accent: light-dark(#725000, #f8cf93);
+    --primary-strong: #8f3d15;
+    --primary-ink: light-dark(#8f3d15, #f0a876);
+    --pos: light-dark(#2c5f3c, #9fd4ac);
+    --neg: light-dark(#8c221e, #f2a79a);
+    --warn: light-dark(#6f480e, #efc57e);
+    --accent: light-dark(#67501a, #efce8e);
   }
   :focus-visible { outline-width: 3px; }
 }

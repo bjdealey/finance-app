@@ -1,0 +1,35 @@
+// Digby's brand mark: a simplified raccoon glyph — bandit mask over the eyes on a warm-cream face,
+// pointed ears, nose on the muzzle — an authored reduction of the app icon that still reads down to
+// ~20px. Brand-locked colours (it reads as "the icon" on either scheme, like a favicon), so it does
+// NOT flip with the theme; the subtle tile stroke gives it an edge on the cream header where tile and
+// canvas are both warm. The same artwork ships as src/app/icon.svg (favicon) — keep the two in sync.
+export function DigbyMark({ size = 28, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      className={className}
+      aria-hidden // always paired with the visible "Digby" wordmark, so the mark is decorative
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="1" y="1" width="38" height="38" rx="11" fill="#efe6d4" stroke="#262420" strokeOpacity="0.1" strokeWidth="1.4" />
+      <g fill="#2a2a2e">
+        {/* ears */}
+        <path d="M16 12.8C12.7 8.6 9.9 6.4 8.5 7.2C7.8 9.4 8.8 12.7 11.1 15.3Z" />
+        <path d="M24 12.8C27.3 8.6 30.1 6.4 31.5 7.2C32.2 9.4 31.2 12.7 28.9 15.3Z" />
+        {/* bandit mask: two eye-lobes, blaze notch at top-centre, muzzle rising at bottom-centre */}
+        <path d="M8.4 14.9C10.5 13.1 13.6 12.6 16.7 13.3C18.1 13.6 19.1 14.4 20 15.8C20.9 14.4 21.9 13.6 23.3 13.3C26.4 12.6 29.5 13.1 31.6 14.9C33.4 17 33.1 20.3 30.8 22.7C28.6 25 25.6 24.9 23.7 22.9C22.5 21.6 21.4 19.1 20 19.1C18.6 19.1 17.5 21.6 16.3 22.9C14.4 24.9 11.4 25 9.2 22.7C6.9 20.3 6.6 17 8.4 14.9Z" />
+        {/* eyes */}
+        <ellipse cx="13.7" cy="17.8" rx="2.6" ry="3.05" fill="#f7f2e6" />
+        <ellipse cx="13.9" cy="18.2" rx="1.45" ry="1.85" fill="#201f23" />
+        <circle cx="14.5" cy="17" r="0.5" fill="#fff" />
+        <ellipse cx="26.3" cy="17.8" rx="2.6" ry="3.05" fill="#f7f2e6" />
+        <ellipse cx="26.1" cy="18.2" rx="1.45" ry="1.85" fill="#201f23" />
+        <circle cx="25.5" cy="17" r="0.5" fill="#fff" />
+        {/* nose on the cream muzzle */}
+        <path d="M20 24.1C21.5 24.2 22 25.4 21.2 26.5C20.7 27 19.3 27 18.8 26.5C18 25.4 18.5 24.2 20 24.1Z" />
+      </g>
+    </svg>
+  );
+}

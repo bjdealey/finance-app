@@ -5,7 +5,7 @@ import { redactUngrounded } from './validate';
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
 
-const SYSTEM = `You are the assistant inside "Finance OS", a personal financial optimisation app.
+const SYSTEM = `You are the assistant inside "Digby", a personal financial optimisation app.
 Help the user understand their finances and the app's recommendations.
 
 ABSOLUTE RULES — these define your safety boundary:

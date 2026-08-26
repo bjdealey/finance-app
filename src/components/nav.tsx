@@ -7,6 +7,7 @@ import { cn } from '@/components/ui';
 import { logoutAction } from '@/server/auth/actions';
 import { PRIMARY, MORE, type NavItem } from '@/lib/nav-items';
 import { OPEN_PALETTE_EVENT } from '@/components/command-palette';
+import { DigbyMark } from '@/components/brand';
 
 export function AppHeader({ userName }: { userName: string }) {
   const pathname = usePathname();
@@ -58,8 +59,8 @@ export function AppHeader({ userName }: { userName: string }) {
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-6">
           <Link href="/dashboard" className="flex shrink-0 items-center gap-2 pr-1" onClick={() => setDrawerOpen(false)}>
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-fg">F</span>
-            <span className="whitespace-nowrap text-sm font-semibold tracking-tight">Finance OS</span>
+            <DigbyMark size={28} />
+            <span className="whitespace-nowrap text-sm font-semibold tracking-tight">Digby</span>
           </Link>
 
           {/* Horizontal nav — appears only once there's room to breathe (below lg it's the drawer). */}
