@@ -49,7 +49,7 @@ export function RulesForm({ rules, accounts }: { rules: RulesInput; accounts: Ac
 
         <FormError error={state.error} />
         <div className="flex items-center gap-3">
-          <button type="submit" disabled={pending} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-primary-strong px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-50">
             {pending ? 'Saving…' : 'Save settings'}
           </button>
           {state.ok && <span className="text-sm text-pos">Saved.</span>}

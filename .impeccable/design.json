@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-26T19:13:21Z",
+  "title": "Design System: Finance OS",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Signal Orange",
+        "canonical": "#fc3d12",
+        "tonalRamp": [
+          "oklch(0.22 0.10 32)",
+          "oklch(0.32 0.15 32)",
+          "oklch(0.42 0.19 32)",
+          "oklch(0.52 0.22 32)",
+          "oklch(0.63 0.24 32)",
+          "oklch(0.73 0.19 32)",
+          "oklch(0.83 0.13 32)",
+          "oklch(0.93 0.05 32)"
+        ]
+      },
+      "primary-strong": {
+        "role": "primary",
+        "displayName": "Signal Orange — Strong",
+        "canonical": "#cc300c"
+      },
+      "primary-ink": {
+        "role": "primary",
+        "displayName": "Signal Orange — Ink",
+        "canonical": "light-dark(#cc300c, #fc3d12)"
+      },
+      "pos": {
+        "role": "secondary",
+        "displayName": "Deep Gold",
+        "canonical": "light-dark(#8a6800, #e7d07b)",
+        "tonalRamp": [
+          "oklch(0.25 0.05 85)",
+          "oklch(0.35 0.07 85)",
+          "oklch(0.45 0.09 85)",
+          "oklch(0.57 0.11 85)",
+          "oklch(0.68 0.11 88)",
+          "oklch(0.78 0.10 90)",
+          "oklch(0.86 0.09 92)",
+          "oklch(0.94 0.05 95)"
+        ]
+      },
+      "warn": {
+        "role": "secondary",
+        "displayName": "Kindled Orange",
+        "canonical": "light-dark(#9e590c, #fba35c)",
+        "tonalRamp": [
+          "oklch(0.28 0.06 55)",
+          "oklch(0.38 0.09 55)",
+          "oklch(0.48 0.11 55)",
+          "oklch(0.56 0.12 55)",
+          "oklch(0.66 0.13 58)",
+          "oklch(0.75 0.12 60)",
+          "oklch(0.84 0.09 62)",
+          "oklch(0.93 0.05 65)"
+        ]
+      },
+      "neg": {
+        "role": "secondary",
+        "displayName": "Sunset Red",
+        "canonical": "light-dark(#d62f0e, #ff6046)",
+        "tonalRamp": [
+          "oklch(0.24 0.10 28)",
+          "oklch(0.34 0.15 28)",
+          "oklch(0.44 0.19 28)",
+          "oklch(0.54 0.20 28)",
+          "oklch(0.62 0.19 28)",
+          "oklch(0.72 0.16 28)",
+          "oklch(0.82 0.11 28)",
+          "oklch(0.92 0.05 28)"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Amber",
+        "canonical": "light-dark(#8f6400, #f2c078)",
+        "tonalRamp": [
+          "oklch(0.30 0.06 75)",
+          "oklch(0.40 0.08 75)",
+          "oklch(0.50 0.10 75)",
+          "oklch(0.60 0.11 78)",
+          "oklch(0.70 0.11 80)",
+          "oklch(0.80 0.10 82)",
+          "oklch(0.88 0.08 84)",
+          "oklch(0.95 0.04 86)"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Pale Sunlight / Deep Navy canvas",
+        "canonical": "light-dark(#f4f7ce, #03051e)"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "light-dark(#ffffff, #0b0e2b)"
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Recessed Surface",
+        "canonical": "light-dark(#ecf1af, #141834)"
+      },
+      "fg": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "light-dark(#03051e, #ecf1c4)"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "light-dark(#575c74, #9b9fb4)"
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Khaki-Gold / Navy hairline",
+        "canonical": "light-dark(#d9d69c, #23274c)"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The single hero figure per screen (e.g. total across accounts). Used once, sparingly."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles and the primary value in a section."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card figures and sub-heads."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The workhorse — nearly all UI text, cells, descriptions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Hints, metadata, badges, and uppercase section eyebrows."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating-overlay",
+        "value": "0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.05)",
+        "purpose": "The 'More' popover / menus — lifted above the page, will dismiss."
+      },
+      {
+        "name": "drawer",
+        "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+        "purpose": "Mobile navigation drawer, above the scrim."
+      },
+      {
+        "name": "scroll-edge",
+        "value": "0 1px 2px 0 rgba(0,0,0,0.05)",
+        "purpose": "Header once content scrolls beneath it (appears past 4px scroll)."
+      },
+      {
+        "name": "segment-thumb",
+        "value": "0 1px 2px 0 rgba(0,0,0,0.05)",
+        "purpose": "Selected theme-toggle segment, proud of its recessed track."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-press",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Button press dip and settle (0.16s)."
+      },
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Confident arrivals — progress grow, chat rise, reasoning unfold."
+      },
+      {
+        "name": "press-scale",
+        "value": "scale(0.97)",
+        "purpose": "Active-state dip applied to every button and .press element."
+      },
+      {
+        "name": "reveal",
+        "value": "block-size 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The authored moment — a recommendation's reasoning animating its own height open via interpolate-size."
+      },
+      {
+        "name": "theme-flip",
+        "value": "background-color 0.4s ease, color 0.4s ease",
+        "purpose": "Eased light-dark switch on the body."
+      },
+      {
+        "name": "duration-fast",
+        "value": "160ms",
+        "purpose": "Press feedback and overlay pop-in."
+      },
+      {
+        "name": "duration-drawer",
+        "value": "240ms",
+        "purpose": "Drawer slide-in and scrim fade."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action — solid Signal Orange, physical press feedback, no hover colour shift.",
+      "html": "<button class=\"ds-btn-primary\">Approve</button>",
+      "css": ".ds-btn-primary{background:var(--primary-strong,#cc300c);color:var(--primary-fg,#fff);border:none;border-radius:8px;padding:8px 16px;font:500 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),opacity .15s ease}.ds-btn-primary:active{transform:scale(.97)}.ds-btn-primary:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral action — hairline border, fills to surface-2 on hover.",
+      "html": "<button class=\"ds-btn-secondary\">Snooze 30d</button>",
+      "css": ".ds-btn-secondary{background:transparent;color:var(--fg,#03051e);border:1px solid var(--border,#d9d69c);border-radius:8px;padding:6px 12px;font:400 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),background-color .15s ease}.ds-btn-secondary:hover{background:var(--surface-2,#ecf1af)}.ds-btn-secondary:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-stakes action — muted text, no border, lifts to full ink on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Dismiss</button>",
+      "css": ".ds-btn-ghost{background:transparent;color:var(--muted,#575c74);border:none;border-radius:8px;padding:6px 12px;font:400 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),color .15s ease}.ds-btn-ghost:hover{color:var(--fg,#03051e)}.ds-btn-ghost:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Solid Button (neutral)",
+      "kind": "button",
+      "refersTo": "button-solid",
+      "description": "High-emphasis action in a neutral key — solid ink fill, canvas text. Used where a form's main action would put a second Signal Orange on screen (transactions Filter, import confirm); carries a primary's weight without breaking the One Voice Rule.",
+      "html": "<button class=\"ds-btn-solid\">Filter</button>",
+      "css": ".ds-btn-solid{background:var(--fg,#03051e);color:var(--bg,#f4f7ce);border:none;border-radius:8px;padding:8px 16px;font:500 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:transform .16s cubic-bezier(.2,0,0,1),opacity .15s ease}.ds-btn-solid:active{transform:scale(.97)}.ds-btn-solid:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A well cut into the card — canvas-coloured background, border shifts to Signal Orange on focus (no ring).",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\"></label>",
+      "css": ".ds-field{display:block}.ds-field-label{display:block;margin-bottom:4px;font:500 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--fg,#03051e)}.ds-input{width:100%;box-sizing:border-box;background:var(--bg,#f4f7ce);color:var(--fg,#03051e);border:1px solid var(--border,#d9d69c);border-radius:8px;padding:8px 12px;font:400 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;outline:none;transition:border-color .15s ease}.ds-input:focus{border-color:var(--primary,#fc3d12)}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat bordered surface with an uppercase eyebrow over a large tabular hero figure.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-eyebrow\">What you have</div><div class=\"ds-card-figure\">£24,318.40</div></div>",
+      "css": ".ds-card{background:var(--surface,#fff);border:1px solid var(--border,#d9d69c);border-radius:12px;padding:20px;color:var(--fg,#03051e)}.ds-card-eyebrow{font:600 0.75rem/1.4 ui-sans-serif,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.05em;color:var(--muted,#575c74)}.ds-card-figure{margin-top:6px;font:600 2.25rem/1.1 ui-sans-serif,system-ui,sans-serif;letter-spacing:-.021em;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Status Badges",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Fully-round pills; default is a quiet surface-2, semantic tones use a 12% tint of their colour.",
+      "html": "<span class=\"ds-badge\">move cash</span> <span class=\"ds-badge ds-badge-pos\">on track</span> <span class=\"ds-badge ds-badge-warn\">behind</span> <span class=\"ds-badge ds-badge-neg\">loss</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;border-radius:9999px;padding:2px 8px;font:500 0.75rem/1.4 ui-sans-serif,system-ui,sans-serif;background:var(--surface-2,#ecf1af);color:var(--muted,#575c74)}.ds-badge-pos{background:color-mix(in oklab,var(--pos,#9a7407) 12%,transparent);color:var(--pos,#9a7407)}.ds-badge-warn{background:color-mix(in oklab,var(--warn,#bb6910) 12%,transparent);color:var(--warn,#bb6910)}.ds-badge-neg{background:color-mix(in oklab,var(--neg,#d62f0e) 12%,transparent);color:var(--neg,#d62f0e)}"
+    },
+    {
+      "name": "Nav Links",
+      "kind": "nav",
+      "refersTo": "nav-link-active",
+      "description": "Rounded text links; the active item fills to surface-2 with medium-weight ink.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\">Dashboard</a><a class=\"ds-nav-link\">Accounts</a><a class=\"ds-nav-link\">Forecast</a></nav>",
+      "css": ".ds-nav{display:inline-flex;gap:2px}.ds-nav-link{border-radius:8px;padding:8px 12px;font:400 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--muted,#575c74);text-decoration:none;cursor:pointer;transition:color .15s ease,background-color .15s ease}.ds-nav-link:hover{color:var(--fg,#03051e)}.ds-nav-link-active{background:var(--surface-2,#ecf1af);color:var(--fg,#03051e);font-weight:500}"
+    },
+    {
+      "name": "Progress Bar",
+      "kind": "custom",
+      "description": "Recessed pill track; the fill grows from its left edge to its value on mount, so it reads as 'how far'.",
+      "html": "<div class=\"ds-progress\"><div class=\"ds-progress-fill\" style=\"width:64%\"></div></div>",
+      "css": ".ds-progress{height:8px;width:220px;background:var(--surface-2,#ecf1af);border-radius:9999px;overflow:hidden}.ds-progress-fill{height:100%;border-radius:9999px;background:var(--pos,#9a7407);transform-origin:left;animation:ds-grow-x .6s cubic-bezier(.16,1,.3,1) both}@keyframes ds-grow-x{from{transform:scaleX(0)}}"
+    },
+    {
+      "name": "Recommendation Card",
+      "kind": "custom",
+      "description": "The signature component — a suggestion with a benefit chip and a 'Why this?' disclosure that unfolds its reasoning trace inside a left-border margin rule. Embodies the 'no black box' POV.",
+      "html": "<div class=\"ds-rec\"><div class=\"ds-rec-head\"><span class=\"ds-rec-badge\">Move cash</span><span class=\"ds-rec-conf\">High confidence</span></div><h3 class=\"ds-rec-what\">Move £3,200 to your instant saver</h3><p class=\"ds-rec-why\">It's sitting idle in your current account earning nothing.</p><span class=\"ds-rec-benefit\">≈ £144/yr interest earned</span><details class=\"ds-rec-details\"><summary class=\"ds-rec-summary\">Why this?</summary><div class=\"ds-rec-trace\">Your current account holds more than your buffer needs, and the instant saver keeps it available.</div></details></div>",
+      "css": ".ds-rec{background:var(--surface,#fff);border:1px solid var(--border,#d9d69c);border-radius:12px;padding:20px;color:var(--fg,#03051e);max-width:420px}.ds-rec-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}.ds-rec-badge{display:inline-flex;align-items:center;border-radius:9999px;padding:2px 8px;font:500 0.75rem/1.4 ui-sans-serif,system-ui,sans-serif;background:color-mix(in oklab,var(--accent,#bf860a) 12%,transparent);color:var(--accent,#bf860a)}.ds-rec-conf{font:400 0.75rem/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--muted,#575c74)}.ds-rec-what{margin:0;font:500 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif}.ds-rec-why{margin:4px 0 0;font:400 0.875rem/1.5 ui-sans-serif,system-ui,sans-serif;color:var(--muted,#575c74)}.ds-rec-benefit{display:inline-block;margin-top:10px;background:color-mix(in oklab,var(--pos,#9a7407) 12%,transparent);color:var(--pos,#9a7407);border-radius:8px;padding:4px 10px;font:500 0.75rem/1.4 ui-sans-serif,system-ui,sans-serif}.ds-rec-details{margin-top:12px}.ds-rec-summary{cursor:pointer;list-style:none;color:var(--primary,#fc3d12);font:400 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif}.ds-rec-summary::-webkit-details-marker{display:none}.ds-rec-trace{margin-top:12px;padding-left:16px;border-left:2px solid var(--border,#d9d69c);font:400 0.875rem/1.5 ui-sans-serif,system-ui,sans-serif;color:var(--muted,#575c74)}"
+    },
+    {
+      "name": "Loading Skeleton",
+      "kind": "custom",
+      "description": "Route-level loading fallback — pulsing surface-2 blocks that echo the page's own chrome (header, hero card, detail rows), shown while the next segment streams in. Freezes to a static shape under reduced-motion; announced as a role=status region.",
+      "html": "<div class=\"ds-skel\" role=\"status\" aria-label=\"Loading\"><div class=\"ds-skel-bar\" style=\"height:32px;width:60%\"></div><div class=\"ds-skel-bar\" style=\"height:16px;width:78%\"></div><div class=\"ds-skel-card\"><div class=\"ds-skel-bar\" style=\"height:16px;width:40%\"></div><div class=\"ds-skel-bar\" style=\"height:40px;width:55%\"></div></div></div>",
+      "css": ".ds-skel{display:flex;flex-direction:column;gap:16px;max-width:420px;animation:ds-pulse 2s ease-in-out infinite}.ds-skel-bar{background:var(--surface-2,#ecf1af);border-radius:6px}.ds-skel-card{display:flex;flex-direction:column;gap:12px;border:1px solid var(--border,#d9d69c);border-radius:12px;padding:20px}@keyframes ds-pulse{50%{opacity:.5}}@media (prefers-reduced-motion:reduce){.ds-skel{animation:none}}"
+    },
+    {
+      "name": "Route Fallback (error / not-found)",
+      "kind": "custom",
+      "description": "Centred surface card for the error and not-found routes, rendered inside the app shell. Error uses the warn (caution) register with a Try again retry() and hides the raw message; not-found is neutral. Copy reassures nothing was changed and offers the way back.",
+      "html": "<div class=\"ds-fallback\"><div class=\"ds-fallback-mark\">!</div><h1 class=\"ds-fallback-title\">This view didn’t load</h1><p class=\"ds-fallback-body\">Something on our side interrupted it. Your accounts and data are safe, and nothing was changed — try again in a moment.</p><div class=\"ds-fallback-actions\"><button class=\"ds-fallback-primary\">Try again</button><a class=\"ds-fallback-secondary\">Back to dashboard</a></div></div>",
+      "css": ".ds-fallback{max-width:420px;text-align:center;background:var(--surface,#fff);border:1px solid var(--border,#d9d69c);border-radius:12px;padding:32px;color:var(--fg,#03051e)}.ds-fallback-mark{display:grid;place-items:center;width:44px;height:44px;margin:0 auto;border-radius:9999px;background:color-mix(in oklab,var(--warn,#9e590c) 12%,transparent);color:var(--warn,#9e590c);font:600 1.25rem/1 ui-sans-serif,system-ui,sans-serif}.ds-fallback-title{margin:16px 0 0;font:600 1.125rem/1.3 ui-sans-serif,system-ui,sans-serif;letter-spacing:-.021em}.ds-fallback-body{margin:8px 0 0;font:400 0.875rem/1.5 ui-sans-serif,system-ui,sans-serif;color:var(--muted,#575c74)}.ds-fallback-actions{display:flex;gap:8px;justify-content:center;margin-top:24px}.ds-fallback-primary{background:var(--primary-strong,#cc300c);color:#fff;border:none;border-radius:8px;padding:8px 16px;font:500 .875rem/1.4 ui-sans-serif,system-ui,sans-serif;cursor:pointer}.ds-fallback-secondary{display:inline-flex;align-items:center;background:transparent;color:var(--fg,#03051e);border:1px solid var(--border,#d9d69c);border-radius:8px;padding:8px 16px;font:500 .875rem/1.4 ui-sans-serif,system-ui,sans-serif;cursor:pointer;text-decoration:none}"
+    },
+    {
+      "name": "Defined Term (Explainer)",
+      "kind": "custom",
+      "description": "A jargon term set with a dotted underline that reveals a one-sentence plain-language gloss on hover, keyboard focus, or tap. role=tooltip + aria-describedby carry it to screen readers, the global focus ring shows on keyboard focus, and Esc dismisses without moving focus (WCAG 1.4.13). Definitions come from one shared glossary so a term reads identically everywhere; in forms the same meaning is persistent helper text instead.",
+      "html": "<span class=\"ds-term\"><button class=\"ds-term-btn\" aria-describedby=\"ds-term-tip\">Cash runway</button><span role=\"tooltip\" id=\"ds-term-tip\" class=\"ds-term-tip\">How many months your instantly-available cash would cover essential spending if your income stopped.</span></span>",
+      "css": ".ds-term{position:relative;display:inline-block}.ds-term-btn{background:none;border:none;padding:0;font:inherit;color:inherit;cursor:help;border-bottom:1px dotted color-mix(in oklab,currentColor 40%,transparent)}.ds-term-btn:hover{border-bottom-color:currentColor}.ds-term-tip{position:absolute;left:0;top:100%;z-index:20;margin-top:8px;width:16rem;max-width:calc(100vw - 3rem);border:1px solid var(--border,#d9d69c);border-radius:8px;background:var(--surface,#fff);padding:10px;font:400 0.75rem/1.5 ui-sans-serif,system-ui,sans-serif;color:var(--muted,#575c74);box-shadow:0 10px 15px -3px rgba(0,0,0,.05),0 4px 6px -4px rgba(0,0,0,.05);opacity:0;pointer-events:none;transition:opacity .15s ease}.ds-term:hover .ds-term-tip,.ds-term:focus-within .ds-term-tip{opacity:1}"
+    },
+    {
+      "name": "Command Palette (⌘K)",
+      "kind": "custom",
+      "description": "A keyboard-first overlay reaching every page and core action across a 12-page app. ⌘K / Ctrl-K (or the header Search chip) opens a centred surface panel — the sanctioned floating pattern (border, shadow-xl, pop-in) over the drawer scrim. Combobox + listbox: the field keeps focus and drives an aria-activedescendant cursor so ↑/↓ move, ↵ runs, and Esc closes and returns focus to where it was. One Voice holds — the only accent is the focus ring; the active row is a neutral surface-2 fill, never orange. The 12 routes are shared with the nav so the two can't drift; the trigger chip shows at lg and up.",
+      "html": "<div class=\"ds-cmdk\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Command palette\"><div class=\"ds-cmdk-in\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden><circle cx=\"7\" cy=\"7\" r=\"4.75\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"m11 11 3.2 3.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg><input role=\"combobox\" aria-expanded=\"true\" placeholder=\"Search pages and actions…\"/></div><div role=\"listbox\" class=\"ds-cmdk-list\"><div class=\"ds-cmdk-grp\">Pages</div><div role=\"option\" aria-selected=\"true\" class=\"ds-cmdk-opt is-active\"><span>Dashboard</span><span class=\"ds-cmdk-hint\">/dashboard</span></div><div role=\"option\" class=\"ds-cmdk-opt\"><span>Transactions</span><span class=\"ds-cmdk-hint\">/transactions</span></div><div class=\"ds-cmdk-grp\">Actions</div><div role=\"option\" class=\"ds-cmdk-opt\"><span>Add transaction</span></div></div><div class=\"ds-cmdk-foot\"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> open <kbd>esc</kbd> close</span></div></div>",
+      "css": ".ds-cmdk{width:36rem;max-width:100%;display:flex;flex-direction:column;border:1px solid var(--border,#d9d69c);border-radius:12px;background:var(--surface,#fff);box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);overflow:hidden;font:400 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--fg,#03051e)}.ds-cmdk-in{display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border,#d9d69c);color:var(--muted,#575c74)}.ds-cmdk-in input{flex:1;border:none;background:none;outline:none;padding:14px 0;font:inherit;color:var(--fg,#03051e)}.ds-cmdk-list{padding:6px 0}.ds-cmdk-grp{padding:12px 16px 4px;font-size:0.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#575c74)}.ds-cmdk-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 6px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--fg,#03051e)}.ds-cmdk-opt.is-active{background:var(--surface-2,#ecf1af)}.ds-cmdk-hint{font-size:0.75rem;color:var(--muted,#575c74)}.ds-cmdk-foot{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:1px solid var(--border,#d9d69c);font-size:0.75rem;color:var(--muted,#575c74)}.ds-cmdk-foot kbd{border:1px solid var(--border,#d9d69c);border-radius:4px;background:var(--surface-2,#ecf1af);padding:2px 6px;font:inherit;font-size:0.75rem}"
+    },
+    {
+      "name": "Bulk Actions Bar (multi-select)",
+      "kind": "custom",
+      "description": "The transactions ledger doubles as a triage surface: a checkbox column and a \"select page\" checkbox drive a bar that replaces the toolbar hint the moment rows are ticked — \"N selected\", then recategorise, make a rule, export CSV, delete. When the whole page is ticked and more match, a banner offers \"Select all N matching this filter\", applied server-side by that same filter (not a list of ids). One Voice holds: ticked rows take a neutral surface-2 tint (never orange), the verbs are bordered neutral controls, and only Delete borrows the neg register — through the same two-step ConfirmButton + Undo toast the single-row delete uses. Delete removes only user-entered rows and reports what it kept; recategorise skips transfers; make-a-rule writes KEYWORD auto-categorise rules for future imports and files the current rows too.",
+      "html": "<div class=\"ds-bulk\"><span class=\"ds-bulk-count\">3 selected</span><span class=\"ds-bulk-sep\"></span><select class=\"ds-bulk-ctrl\" aria-label=\"Recategorise selected\"><option>Recategorise…</option></select><select class=\"ds-bulk-ctrl\" aria-label=\"Make a rule from selected\"><option>Make rule →…</option></select><button class=\"ds-bulk-ctrl\">Export CSV</button><button class=\"ds-bulk-ctrl ds-bulk-del\">Delete</button><button class=\"ds-bulk-clear\">Clear</button></div>",
+      "css": ".ds-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border,#d9d69c);border-radius:12px;background:var(--surface,#fff);font:500 0.875rem/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--fg,#03051e)}.ds-bulk-count{font-weight:600}.ds-bulk-sep{width:1px;height:16px;background:var(--border,#d9d69c);margin:0 2px}.ds-bulk-ctrl{border:1px solid var(--border,#d9d69c);border-radius:8px;background:var(--surface,#fff);padding:4px 10px;font:500 0.75rem/1 ui-sans-serif,system-ui,sans-serif;color:var(--fg,#03051e);cursor:pointer}.ds-bulk-del{color:var(--muted,#575c74)}.ds-bulk-del:hover{color:var(--neg,#c0442e)}.ds-bulk-clear{border:none;background:none;font-size:0.75rem;color:var(--muted,#575c74);cursor:pointer}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Glass Cockpit",
+    "overview": "Finance OS is a warm glass cockpit for a person's money: instrument-grade clarity delivered in the voice of a well-set financial column. Every figure is legible at a glance, every figure traces back to source, and the interface is forever answering the same four questions — what do I have, what's happening this month, what should I do, am I on track — without ever hiding the arithmetic behind a black-box score. The chrome recedes; the numbers lead.\n\nThe palette is 'sunset and ink' — a pale-sunlight canvas (or deep-navy at night) with deep-navy ink, warmed by a family of golds and oranges that each mean something. This is not decoration: gold reads as value earned, orange as caution, a hot Signal Orange as the one thing you should act on. The surfaces are flat and quiet, bordered by a soft khaki-gold hairline; depth comes from tonal layering, not drop shadows. Motion is Apple-fluid and single-purpose — controls dip toward the finger, overlays grow from the point they were summoned, and the one authored flourish is a recommendation's reasoning physically unfolding when you ask 'Why this?'.\n\nThe register is warm and editorial, never clinical and never loud. It should feel like a trusted adviser who shows their working: calm, exact, readable, and confident enough to leave most of the screen still. Anti-reference: the neon fintech dashboard, the black-box 'credit score' dial, the gamified confetti-and-streak app. Finance OS earns trust by being explicable, not exciting.",
+    "keyCharacteristics": [
+      "Warm sunset-and-ink palette where every hue carries semantic meaning (gold = value, orange = caution, Signal Orange = action).",
+      "Flat, bordered surfaces; depth by tonal layering (bg → surface → surface-2), never by resting shadow.",
+      "Tabular, sans-serif numerals that lead every screen — money is the typography.",
+      "Reasoning is always one disclosure away; the product's POV is 'no black box'.",
+      "Restraint: generous quiet, the accent used sparingly, a single authored motion moment.",
+      "First-class light and dark, resolved with light-dark() and honoured before first paint."
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Signal Orange is action-only. It appears on the logo mark and the primary button, and it is never used to decorate, fill, or highlight. If a screen has Signal Orange in two places, one of them is wrong — its scarcity is exactly what makes 'do this' legible.",
+        "section": "colors"
+      },
+      {
+        "name": "The Hue-Means-Something Rule",
+        "body": "A warm colour is never decorative. Gold means value/gains, Kindled Orange means caution, Sunset Red means loss. A positive number rendered in orange, or a caution rendered in gold, is a bug — reach for the semantic token (text-pos / text-warn / text-neg), never a raw colour.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sunlit-or-Midnight Rule",
+        "body": "Both schemes are first-class. Never hardcode a hex where a semantic token exists; every colour must survive the light-dark() flip, and the theme is applied before first paint (no flash).",
+        "section": "colors"
+      },
+      {
+        "name": "The AA-Orange Rule",
+        "body": "Every action and semantic colour clears WCAG AA (≥4.5:1) at body size: white on primary-strong, and primary-ink / pos / warn / neg / accent as text. Vivid #fc3d12 is kept only where 3:1 suffices — the logo mark and large / non-text fills. If a colour is used as normal-size text or behind white button text, it must be one of the AA-cleared tokens, never raw #fc3d12.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular-Money Rule",
+        "body": "Every monetary figure uses tabular numerals (.tnum / font-variant-numeric: tabular-nums) and never wraps. Money is set in the sans stack, not mono — the tabular figures do the alignment, the mono font is only for literal credentials.",
+        "section": "typography"
+      },
+      {
+        "name": "The Numbers-Lead Rule",
+        "body": "The biggest thing on any screen is a figure, not a heading. Section eyebrows are small, muted, and uppercase precisely so the value beneath them can be large and bare.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. A shadow appears only to say 'this is floating above the page' (a popover, a drawer) or 'this is now stuck to the top' (the scrolled header) — never to add depth to a static card. If a resting card has a shadow, remove it.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do lead every screen with a large, bare, tabular figure and a small muted eyebrow above it.",
+      "Do reach for a semantic colour token by meaning — text-pos for gains, text-neg for loss, text-warn for caution — never a raw hex.",
+      "Do keep every action and semantic colour at ≥4.5:1 as text: bg-primary-strong for buttons, text-primary-ink for orange text/links; reserve vivid bg-primary (#fc3d12) for the logo mark and large / non-text fills.",
+      "Do guard a destructive, hard-to-reverse action (close account, delete goal, delete transaction) behind the two-step ConfirmButton — which also raises an Undo toast — so nothing fires on a single click and every confirmed action has a way back.",
+      "Do let the global :focus-visible ring show on every interactive element, and pad interactive text (links, disclosures) to a ≥24px touch target.",
+      "Do give every route a calm fallback — a shell-preserving loading skeleton, an error boundary with Try again (retry()), and a not-found — and turn an untrusted route param that can't resolve (a bad id) into a 404, not a 500.",
+      "Do keep surfaces flat; build structure from the border-border hairline and the bg→surface→surface-2 tonal ladder.",
+      "Do set money in the sans stack with tabular numerals (.tnum) and whitespace-nowrap.",
+      "Do make reasoning reachable — put the 'why' one disclosure away, and let it unfold.",
+      "Do explain finance jargon at its point of use — a dotted-underline Explainer term with a one-line plain-language gloss (or persistent helper text in a form), drawn from the single shared glossary so the wording stays consistent everywhere.",
+      "Do support both schemes through light-dark() tokens, and keep motion to transform/opacity so it degrades cleanly under reduced-motion.",
+      "Do give power users a keyboard path — the ⌘K command palette reaches every page and core action from one overlay, driven from the shared nav list so it never drifts, with the only accent its focus ring.",
+      "Do make a high-volume list triage-able — multi-select with a bulk bar (recategorise, rule, export, delete), \"select all N matching\" for cross-page reach applied by filter, a neutral surface-2 tint for ticked rows, and destructive bulk delete behind the same ConfirmButton + Undo as a single row."
+    ],
+    "donts": [
+      "Don't use Signal Orange for anything but the brand mark and the primary action. No orange fills, dividers, or highlights.",
+      "Don't give a resting card a drop shadow — shadow means 'floating' or 'scroll-detached', nothing else.",
+      "Don't strip the :focus-visible ring (a bare outline-none with nothing in its place) — it's the keyboard user's only cue. A soft glow is still out; the focus indicator is a crisp 2px Signal-Orange line.",
+      "Don't set money or figures in the mono font — mono is only for literal credentials.",
+      "Don't show a black-box score or an unexplained number; if a figure can't be traced to accounts and transactions, it doesn't belong.",
+      "Don't let data tables reflow the page — scroll them horizontally inside their card."
+    ]
+  }
+}

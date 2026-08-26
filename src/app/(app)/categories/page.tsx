@@ -44,7 +44,7 @@ export default async function CategoriesPage() {
                     <summary className="cursor-pointer list-none text-muted hover:text-fg">Rename</summary>
                     <form action={renameCategoryAction.bind(null, c.id)} className="absolute right-0 z-10 mt-1 flex gap-2 rounded-lg border border-border bg-surface p-2 shadow-lg shadow-black/5">
                       <input name="name" defaultValue={c.name} required maxLength={60} aria-label="New name" className="rounded border border-border bg-bg px-2 py-1 text-sm outline-none focus:border-primary" />
-                      <button className="rounded bg-primary px-2.5 py-1 font-medium text-primary-fg">Save</button>
+                      <button className="rounded bg-primary-strong px-2.5 py-1 font-medium text-primary-fg">Save</button>
                     </form>
                   </details>
                   {inUse ? (

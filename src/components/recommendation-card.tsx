@@ -50,7 +50,7 @@ export function RecommendationCard({ rec, accountName, footer }: { rec: Recommen
       </div>
 
       <details className="reveal group mt-3">
-        <summary className="flex w-fit cursor-pointer items-center gap-1 text-sm text-primary hover:underline [&::-webkit-details-marker]:hidden">
+        <summary className="flex w-fit cursor-pointer items-center gap-1 py-2 text-sm text-primary-ink hover:underline [&::-webkit-details-marker]:hidden">
           Why this?
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="text-muted transition-transform duration-200 group-open:rotate-90">
             <path d="M4.5 3 7.5 6 4.5 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

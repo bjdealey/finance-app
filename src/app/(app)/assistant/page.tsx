@@ -4,14 +4,14 @@ import { Card, PageHeader } from '@/components/ui';
 import { AssistantChat } from '@/components/assistant-chat';
 
 export default async function AssistantPage() {
-  await requireUser();
+  const user = await requireUser();
   const available = assistantAvailable();
 
   return (
     <div>
       <PageHeader title="Assistant" subtitle="Ask about your finances. The assistant reads your figures through deterministic tools; any number it can't verify against them is removed before you see it." />
       {available ? (
-        <AssistantChat />
+        <AssistantChat userId={user.id} />
       ) : (
         <Card>
           <h2 className="font-semibold">Assistant not configured</h2>

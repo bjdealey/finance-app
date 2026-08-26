@@ -15,6 +15,16 @@ export interface Categorised {
   confidence: number; // 0-100
 }
 
+// The distinctive leading word of a merchant, lower-cased with digits and punctuation stripped, so
+// "TESCO STORES 2913" and "TESCO EXPRESS" both reduce to "tesco". Used as a KEYWORD rule pattern — a
+// substring match that files a whole merchant family, not one exact string. null when there's no
+// usable word (empty, or all digits/symbols).
+export function merchantToken(merchant: string | null | undefined, minLength = 2): string | null {
+  if (!merchant) return null;
+  const first = merchant.toLowerCase().replace(/[^a-z\s]+/g, ' ').trim().split(/\s+/)[0] ?? '';
+  return first.length >= minLength ? first : null;
+}
+
 export function categorise(
   txn: { merchant?: string | null; description?: string | null },
   rules: CatRule[],

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import type { ScenarioDelta, ScenarioResult } from '@/core/scenario';
 import { runScenarioAction } from '@/app/(app)/scenarios/actions';
 import { poundsToPence } from '@/core/money';
@@ -42,11 +42,28 @@ export function ScenarioLab({ initial }: { initial: ScenarioResult }) {
   const [fields, setFields] = useState<Fields>(ZERO);
   const [result, setResult] = useState<ScenarioResult>(initial);
   const [pending, start] = useTransition();
+  const runId = useRef(0);
 
+  // Recompute as the numbers move — but wait for a pause in typing so it's one round-trip
+  // per idea, not one per keystroke. Zero deltas *is* the baseline we were handed, so restore
+  // it locally: mount and Reset stay instant with no server call. runId guards against a slow
+  // response landing after a newer one (a stale scenario flashing in).
   useEffect(() => {
     const deltas = toDeltas(fields);
-    start(async () => setResult(await runScenarioAction(deltas)));
-  }, [fields]);
+    if (deltas.length === 0) {
+      runId.current++;
+      setResult(initial);
+      return;
+    }
+    const t = setTimeout(() => {
+      const id = ++runId.current;
+      start(async () => {
+        const next = await runScenarioAction(deltas);
+        if (id === runId.current) setResult(next);
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [fields, initial]);
 
   const b = result.baseline;
   const s = result.scenario;

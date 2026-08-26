@@ -20,7 +20,13 @@ export interface AccountInput {
   statementDay: number | null;
 }
 
+// A route param is untrusted input: a malformed id makes Postgres throw on the uuid cast, which would
+// surface as a 500-class error boundary. Treat "not a uuid" as "not found" so a stale or hand-edited
+// link renders the calmer 404 (the caller's notFound()) instead.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getAccount(userId: string, id: string): Promise<AccountRow | null> {
+  if (!UUID_RE.test(id)) return null;
   const [row] = await db
     .select()
     .from(accounts)

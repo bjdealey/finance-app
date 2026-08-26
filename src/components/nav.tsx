@@ -5,34 +5,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/components/ui';
 import { logoutAction } from '@/server/auth/actions';
-
-type Item = { href: string; label: string };
-
-// Primary items sit in the desktop bar; the rest live under "More" and in the mobile drawer.
-// The order follows the money story: overview → holdings → history → future → action.
-const PRIMARY: Item[] = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/accounts', label: 'Accounts' },
-  { href: '/transactions', label: 'Transactions' },
-  { href: '/forecast', label: 'Forecast' },
-  { href: '/recommendations', label: 'Recommendations' },
-];
-const MORE: Item[] = [
-  { href: '/goals', label: 'Goals' },
-  { href: '/behaviour', label: 'Behaviour' },
-  { href: '/scenarios', label: 'What if?' },
-  { href: '/health', label: 'Health' },
-  { href: '/assistant', label: 'Assistant' },
-  { href: '/categories', label: 'Categories' },
-  { href: '/settings', label: 'Settings' },
-];
+import { PRIMARY, MORE, type NavItem } from '@/lib/nav-items';
+import { OPEN_PALETTE_EVENT } from '@/components/command-palette';
 
 export function AppHeader({ userName }: { userName: string }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mac, setMac] = useState(true); // ⌘ vs Ctrl on the palette chip; assume ⌘, correct after mount
   const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMac(/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent));
+  }, []);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
   const moreActive = MORE.some((i) => isActive(i.href));
@@ -72,7 +58,7 @@ export function AppHeader({ userName }: { userName: string }) {
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-6">
           <Link href="/dashboard" className="flex shrink-0 items-center gap-2 pr-1" onClick={() => setDrawerOpen(false)}>
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-[13px] font-bold text-primary-fg">F</span>
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-fg">F</span>
             <span className="whitespace-nowrap text-sm font-semibold tracking-tight">Finance OS</span>
           </Link>
 
@@ -120,6 +106,16 @@ export function AppHeader({ userName }: { userName: string }) {
 
           {/* Right side */}
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
+              aria-label="Open command palette"
+              title="Search pages and actions"
+              className="hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted transition hover:bg-surface-2 hover:text-fg lg:inline-flex"
+            >
+              <span aria-hidden>Search</span>
+              <kbd className="rounded border border-border px-1 py-0.5 font-sans text-xs leading-none">{mac ? '⌘K' : 'Ctrl K'}</kbd>
+            </button>
             <span className="hidden text-sm text-muted lg:inline">{userName}</span>
             <form action={logoutAction} className="hidden lg:block">
               <button className="rounded-lg border border-border px-3 py-1.5 text-sm text-muted transition hover:bg-surface-2 hover:text-fg">
@@ -189,7 +185,7 @@ export function AppHeader({ userName }: { userName: string }) {
   );
 }
 
-function NavLink({ item, active }: { item: Item; active: boolean }) {
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
@@ -203,13 +199,13 @@ function NavLink({ item, active }: { item: Item; active: boolean }) {
   );
 }
 
-function DrawerLink({ item, active, onClick }: { item: Item; active: boolean; onClick: () => void }) {
+function DrawerLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
   return (
     <Link
       href={item.href}
       onClick={onClick}
       className={cn(
-        'block rounded-lg px-3 py-2.5 text-[15px] transition',
+        'block rounded-lg px-3 py-2.5 text-sm transition',
         active ? 'bg-surface-2 font-medium text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
       )}
     >

@@ -17,12 +17,14 @@
   --fg: light-dark(#03051e, #ecf1c4);        /* deep-navy ink / soft pale-yellow ink */
   --muted: light-dark(#575c74, #9b9fb4);
   --border: light-dark(#d9d69c, #23274c);    /* soft khaki-gold / navy hairline */
-  --primary: #fc3d12;                        /* orange-red — brand & primary action (P4), both schemes */
+  --primary: #fc3d12;                          /* Signal Orange — vivid brand: logo mark, fills, ::selection (non-text/large; both schemes) */
   --primary-fg: #ffffff;
-  --pos: light-dark(#9a7407, #e7d07b);       /* gains / on-track — deep gold on light, gold on navy (P2) */
-  --neg: light-dark(#d62f0e, #ff6046);       /* losses — orange-red, lightened for text on navy (P4) */
-  --warn: light-dark(#bb6910, #fba35c);      /* caution — dark orange / light orange (P3) */
-  --accent: light-dark(#bf860a, #f2c078);    /* secondary accent — amber (P2 hue) */
+  --primary-strong: #cc300c;                   /* deep orange for BUTTONS — white text clears AA (≥4.5:1) in both schemes */
+  --primary-ink: light-dark(#cc300c, #fc3d12); /* orange TEXT & links — deep on light, vivid on dark; AA either way */
+  --pos: light-dark(#8a6800, #e7d07b);         /* gains / on-track — gold; light arm deepened to clear AA as text (P2) */
+  --neg: light-dark(#d62f0e, #ff6046);         /* losses — orange-red, lightened for text on navy (P4; already ≥4.5:1) */
+  --warn: light-dark(#9e590c, #fba35c);        /* caution — burnt orange; light arm deepened to clear AA as text (P3) */
+  --accent: light-dark(#8f6400, #f2c078);      /* secondary accent — amber; light arm deepened to clear AA as text (P2 hue) */
 }
 
 /* An explicit choice pins the scheme, overriding the OS in both directions. */
@@ -38,6 +40,8 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-fg: var(--primary-fg);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-ink: var(--primary-ink);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
   --color-warn: var(--warn);
@@ -58,6 +62,19 @@ body {
 ::selection {
   background: var(--primary);
   color: var(--primary-fg);
+}
+
+/* Placeholders are supplementary hints (every field also has a real <label>). Use the AA-passing
+   muted token at full opacity — the browser default 50%-alpha ink fell short of 4.5:1. */
+::placeholder { color: var(--muted); opacity: 1; }
+
+/* Focus: ONE visible, consistent keyboard-focus ring on every interactive element — the design's
+   "single decisive line" made uniform. :focus-visible fires for keyboard / assistive focus only, so
+   pointer clicks stay ringless (text fields keep their border-shift cue). Signal-Orange ink so it
+   clears AA in both schemes; unlayered, so it wins over Tailwind's utility outline resets. */
+:focus-visible {
+  outline: 2px solid var(--primary-ink);
+  outline-offset: 2px;
 }
 
 /* Tabular figures keep money columns aligned. */
@@ -155,5 +172,15 @@ button:not(:disabled):active, .press:active { transform: scale(0.97); }
   header { background: var(--surface) !important; backdrop-filter: none !important; }
 }
 @media (prefers-contrast: more) {
-  :root { --border: light-dark(#8f8b58, #5b6089); --muted: light-dark(#3f4457, #c4c7d7); }
+  :root {
+    --border: light-dark(#8f8b58, #5b6089);
+    --muted: light-dark(#3f4457, #c4c7d7);
+    /* Push the action + semantic colours past AA for high-contrast users, in both schemes. */
+    --primary-strong: light-dark(#a82708, #d1330d);
+    --primary-ink: light-dark(#a82708, #ff6a44);
+    --pos: light-dark(#6f5300, #f0dc92);
+    --warn: light-dark(#7d460a, #ffb877);
+    --accent: light-dark(#725000, #f8cf93);
+  }
+  :focus-visible { outline-width: 3px; }
 }
