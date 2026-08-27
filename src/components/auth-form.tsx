@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { loginAction, registerAction, type AuthState } from '@/server/auth/actions';
+import { DigbyMark } from '@/components/brand';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const action = mode === 'login' ? loginAction : registerAction;
@@ -12,8 +13,11 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6">
       <div className="mb-8 text-center">
-        <div className="text-sm font-semibold uppercase tracking-widest text-primary-ink">Finance OS</div>
-        <h1 className="mt-2 text-2xl font-semibold">{isLogin ? 'Welcome back' : 'Create your account'}</h1>
+        <div className="mb-5 flex items-center justify-center gap-2">
+          <DigbyMark size={40} />
+          <span className="text-lg font-semibold tracking-tight">Digby</span>
+        </div>
+        <h1 className="text-2xl font-semibold">{isLogin ? 'Welcome back' : 'Create your account'}</h1>
         <p className="mt-1 text-sm text-muted">
           See what your money should do next — with the reasoning shown.
         </p>
